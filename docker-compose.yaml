@@ -1,49 +1,25 @@
 services:
-  keycloak:
-    container_name: keycloak
-    image: quay.io/keycloak/keycloak:24.0.1
-    command: ["start-dev", "--import-realm"]
+  api-gateway:
+    # image: maxo5499/sportsstack/api-gateway:latest
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      DB_VENDOR: mysql
-      DB_ADDR: mysql-keycloak
-      # KC_DB_URL_PORT: 3306
-      DB_USER: keycloak
-      DB_PASSWORD: password
-      # KC_HOSTNAME_STRICT_BACKCHANNEL: 'false'
-      # KC_PROXY: edge
+      # - SPRING_PROFILES_ACTIVE=docker
+      - ODDSTRACKER_SERVICE_URL=http://oddstracker-app:8080
+      - ROTOREADER_SERVICE_URL=http://rotoreader-app:8081
+      - MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=*
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS=always
+      - MANAGEMENT_HEALTH_CIRCUITBREAKERS_ENABLED=true
     ports:
-      - 8181:8080
-    depends_on:
-      - mysql-keycloak
-    volumes:
-      - ./docker/data/keycloak/realms/:/opt/keycloak/data/import/
+      - "8088:8088"
+    # depends_on:
+    #   - oddstracker-service
+    #   - rotoreader-service
+    networks:
+      - sportsstack
 
-  mysql:
-    image: mysql:8.3.0
-    container_name: order-service-mysql
-    ports:
-      - "3306:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: mysql
-    volumes:
-      - ./docker/data/mysql-data:/var/lib/mysql
-      - ./docker/config/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
-  
-    
-  mysql-keycloak:
-    container_name: mysql-keycloak
-    image: mysql:8.3.0
-    environment:
-      MYSQL_ROOT_PASSWORD: mysql
-      MYSQL_DATABASE: keycloak
-      MYSQL_USER: keycloak
-      MYSQL_PASSWORD: password
-    # ports:
-    #   - 3308:3306
-    volumes:
-      - ./docker/data/mysql-keycloak/data:/var/lib/mysql
 
   loki:
     image: grafana/loki:2.8.2
@@ -51,6 +27,8 @@ services:
     command: ["-config.file=/etc/loki/local-config.yaml"]
     ports:
       - "3101:3100"
+    networks:
+      - monitoring
 
   prometheus:
     image: prom/prometheus:v2.46.0
@@ -60,18 +38,23 @@ services:
     volumes:
       - ./docker/config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
-      - '9090:9090'
+      - "9090:9090"
+    networks:
+      - monitoring
 
   tempo:
     image: grafana/tempo:2.2.2
     container_name: tempo
-    command: [ "-config.file=/etc/tempo.yaml" ]
+    command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ./docker/config/tempo/tempo.yml:/etc/tempo.yaml:ro
       - ./docker/data/tempo:/tmp/tempo
     ports:
-      - "3110:3100"  # Tempo
+      - "3110:3100" # Tempo
       - "9411:9411" # zipkin
+    networks:
+      - monitoring
+
   grafana:
     image: grafana/grafana:10.1.0
     container_name: grafana
@@ -83,59 +66,220 @@ services:
       - GF_AUTH_DISABLE_LOGIN_FORM=true
     ports:
       - "3001:3000"
+    networks:
+      - monitoring
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - ./docker/config/promtail/config.yaml:/etc/promtail/config.yaml # Mount the Promtail config file
+      - /var/run/docker.sock:/var/run/docker.sock # Mount the Docker socket
+    command: ["-config.file=/etc/promtail/config.yaml"]
+    depends_on: # Ensure loki is available before promtail starts
+      - loki
+    networks:
+      - monitoring
 
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    hostname: zookeeper
-    container_name: zookeeper
-    ports:
-      - "2181:2181"
+  rotoreader-postgres:
+    image: pgvector/pgvector:pg18
+    container_name: rotoreader-postgres
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-
-  broker:
-    image: confluentinc/cp-kafka:7.5.0
-    container_name: broker
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: rotoreader
+      POSTGRES_SSLMODE: ${POSTGRES_SSLMODE:-disable}
+    # restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d rotoreader"]
+      interval: 10s
     ports:
-      - "9092:9092"
-      - "29092:29092"
+      - "5433:5432"
+    volumes:
+      - rotoreader_pgdata:/var/lib/postgresql/data
+      # - ./docker/data/postgres:/var/lib/postgresql/data
+      # - ./src/schema/postgres.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - sportsstack
+
+  rotoreader-app:
+    # build: .
+    image: rotoreader:latest
+    container_name: rotoreader-app
+    env_file:
+      - .env
+    environment:
+      ROOT_DIR: /app
+      POSTGRES_HOST: rotoreader-postgres
+      POSTGRES_DB: rotoreader
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PORT: 5432
+      APP_PORT: ${APP_PORT:-8081}
+    ports:
+      - "8081:${APP_PORT:-8081}"
     depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      rotoreader-postgres:
+        condition: service_healthy
+    networks:
+      - sportsstack
 
-  schema-registry:
-    image: confluentinc/cp-schema-registry:7.5.0
-    hostname: schema-registry
-    container_name: schema-registry
-    depends_on:
-      - broker
+
+  oddstracker-postgres:
+    image: pgvector/pgvector:pg18
+    container_name: oddstracker-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_SSLMODE: ${POSTGRES_SSLMODE:-disable}
+      POSTGRES_DB: oddstracker
+    # restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d oddstracker"]
+      interval: 10s
     ports:
-      - "8085:8081"
+      - "5434:5432"
+    volumes:
+      - oddstracker_pgdata:/var/lib/postgresql/data
+      # - ./docker/data/postgres:/var/lib/postgresql/data
+      # - ./src/schema/postgres.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - sportsstack
+
+
+  oddstracker-app:
+    image: oddstracker:latest
+    container_name: oddstracker-app
+    env_file:
+      - .env
     environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
-      SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
-
-
-
-
-  kafka-ui:
-    container_name: kafka-ui
-    image: provectuslabs/kafka-ui:latest
+      ROOT_DIR: /app
+      POSTGRES_HOST: oddstracker-postgres
+      POSTGRES_DB: oddstracker
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PORT: 5432
+      APP_PORT: 8080
     ports:
-      - "8086:8080"
+      - "8080:8080"
     depends_on:
-      - broker
-      # - schema-registry
-    environment:
-      KAFKA_CLUSTERS_NAME: local
-      KAFKA_CLUSTERS_BOOTSTRAPSERVERS: broker:29092
-      # KAFKA_CLUSTERS_SCHEMAREGISTRY: http://schema-registry:8081
-      DYNAMIC_CONFIG_ENABLED: 'true'
+      oddstracker-postgres:
+        condition: service_healthy
+    networks:
+      - sportsstack
+
+  # zookeeper:
+  #   image: confluentinc/cp-zookeeper:7.5.0
+  #   hostname: zookeeper
+  #   container_name: zookeeper
+  #   ports:
+  #     - "2181:2181"
+  #   environment:
+  #     ZOOKEEPER_CLIENT_PORT: 2181
+  #     ZOOKEEPER_TICK_TIME: 2000
+
+  # broker:
+  #   image: confluentinc/cp-kafka:7.5.0
+  #   container_name: broker
+  #   ports:
+  #     - "9092:9092"
+  #     - "29092:29092"
+  #   depends_on:
+  #     - zookeeper
+  #   environment:
+  #     KAFKA_BROKER_ID: 1
+  #     KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  # schema-registry:
+  #   image: confluentinc/cp-schema-registry:7.5.0
+  #   hostname: schema-registry
+  #   container_name: schema-registry
+  #   depends_on:
+  #     - broker
+  #   ports:
+  #     - "8085:8081"
+  #   environment:
+  #     SCHEMA_REGISTRY_HOST_NAME: schema-registry
+  #     SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
+  #     SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
+
+  # kafka-ui:
+  #   container_name: kafka-ui
+  #   image: provectuslabs/kafka-ui:latest
+  #   ports:
+  #     - "8086:8080"
+  #   depends_on:
+  #     - broker
+  #     # - schema-registry
+  #   environment:
+  #     KAFKA_CLUSTERS_NAME: local
+  #     KAFKA_CLUSTERS_BOOTSTRAPSERVERS: broker:29092
+  #     # KAFKA_CLUSTERS_SCHEMAREGISTRY: http://schema-registry:8081
+  #     DYNAMIC_CONFIG_ENABLED: 'true'
+# postgres-sportsstack:
+#   image: pgvector/pgvector:pg18
+#   container_name: postgres
+#   environment:
+#     POSTGRES_USER: ${POSTGRES_USER:-postgres}
+#     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+#     POSTGRES_DB: ${POSTGRES_DB:-sportsstack}
+#     POSTGRES_SSLMODE: ${POSTGRES_SSLMODE:-disable}
+#   # restart: unless-stopped
+#   healthcheck:
+#     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-sportsstack}"]
+#     interval: 10s
+#   ports:
+#     - "5444:5432"
+#   volumes:
+#     - sportsstack_postgres_data:/var/lib/postgresql/data
+#     # - ./docker/data/postgres:/var/lib/postgresql/data
+#     # - ./src/schema/postgres.sql:/docker-entrypoint-initdb.d/schema.sql
+
+# keycloak:
+#   container_name: keycloak
+#   image: quay.io/keycloak/keycloak:24.0.1
+#   command: ["start-dev", "--import-realm"]
+#   environment:
+#     KEYCLOAK_ADMIN: admin
+#     KEYCLOAK_ADMIN_PASSWORD: admin
+#     DB_VENDOR: mysql
+#     DB_ADDR: mysql-keycloak
+#     # KC_DB_URL_PORT: 3306
+#     DB_USER: keycloak
+#     DB_PASSWORD: password
+#     # KC_HOSTNAME_STRICT_BACKCHANNEL: 'false'
+#     # KC_PROXY: edge
+#   ports:
+#     - 8181:8080
+#   depends_on:
+#     - mysql-keycloak
+#   volumes:
+#     - ./docker/data/keycloak/realms/:/opt/keycloak/data/import/
+
+# mysql-keycloak:
+#   container_name: mysql-keycloak
+#   image: mysql:8.3.0
+#   environment:
+#     MYSQL_ROOT_PASSWORD: mysql
+#     MYSQL_DATABASE: keycloak
+#     MYSQL_USER: keycloak
+#     MYSQL_PASSWORD: password
+#   # ports:
+#   #   - 3308:3306
+#   volumes:
+#     - ./docker/data/mysql-keycloak/data:/var/lib/mysql
+
+volumes:
+  rotoreader_pgdata:
+  oddstracker_pgdata:
+
+networks:
+  monitoring:
+    external: true
+  sportsstack:
+    external: true

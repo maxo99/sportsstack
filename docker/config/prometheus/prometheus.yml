@@ -4,7 +4,9 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['host.docker.internal:8088'] ## only for demo purposes don't use host.docker.internal in production
-  
+        labels:
+          application: 'API Gateway'
+
   - job_name: 'oddstracker-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
@@ -18,3 +20,8 @@ scrape_configs:
       - targets: ['host.docker.internal:8081'] ## only for demo purposes don't use host.docker.internal in production
         labels:
           application: 'RotoReader Service'
+
+  - job_name: 'loki-observer'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['loki:3100']

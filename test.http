@@ -1,0 +1,32 @@
+
+
+###
+
+GET http://localhost:8088/api/oddstracker
+
+###
+
+GET http://localhost:8088/api/rotoreader
+
+###
+
+GET http://localhost:8088/api/rotoreader/feed?size=1
+
+###
+
+PUT http://localhost:8088/api/rotoreader/collect?limit=1
+
+###
+
+GET http://localhost:8088/api/oddstracker
+
+###
+
+GET http://localhost:8088
+
+###
+
+GET http://localhost:8088/aggregate/api-docs
+
+
+###
