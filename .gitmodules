@@ -1,0 +1,3 @@
+[submodule "rotoreader"]
+	path = rotoreader
+	url = https://github.com/maxo99/rotoreader.git
