@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: oddstracker-collect-hourly
+  namespace: sportsstack
+spec:
+  schedule: "0 * * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: curl
+              image: curlimages/curl:8.10.1
+              imagePullPolicy: IfNotPresent
+              args:
+                - sh
+                - -c
+                - >
+                  curl -fsS -X POST http://oddstracker:8080/collect || { echo "collect failed"; exit 1; }

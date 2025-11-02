@@ -1,3 +1,6 @@
 [submodule "rotoreader"]
 	path = rotoreader
 	url = https://github.com/maxo99/rotoreader.git
+[submodule "oddstracker"]
+	path = oddstracker
+	url = https://github.com/maxo99/oddstracker.git

@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oddstracker
+  namespace: sportsstack
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: oddstracker
+  template:
+    metadata:
+      labels:
+        app: oddstracker
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: db-config
+          command: ["sh", "-c"]
+          args:
+            - >
+              until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -t 2; do
+                echo "waiting for postgres at $POSTGRES_HOST:$POSTGRES_PORT";
+                sleep 2;
+              done
+      containers:
+        - name: api
+          image: maxo5499/sportsstack-oddstracker:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: LOG_LEVEL
+              value: INFO
+            - name: ROOT_DIR
+              value: /app
+            - name: APP_PORT
+              value: "8080"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+                  # TODO: Replace with managed secret store before production
+            - name: THEODDSAPI_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: THEODDSAPI_KEY
+                  # TODO: Replace with managed secret store before production
+          envFrom:
+            - configMapRef:
+                name: db-config
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oddstracker
+  namespace: sportsstack
+spec:
+  type: ClusterIP
+  selector:
+    app: oddstracker
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
