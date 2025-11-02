@@ -21,68 +21,6 @@ services:
       - sportsstack
 
 
-  loki:
-    image: grafana/loki:2.8.2
-    container_name: loki
-    command: ["-config.file=/etc/loki/local-config.yaml"]
-    ports:
-      - "3101:3100"
-    networks:
-      - monitoring
-
-  prometheus:
-    image: prom/prometheus:v2.46.0
-    command:
-      - --enable-feature=exemplar-storage
-      - --config.file=/etc/prometheus/prometheus.yml
-    volumes:
-      - ./docker/config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    ports:
-      - "9090:9090"
-    networks:
-      - monitoring
-
-  tempo:
-    image: grafana/tempo:2.2.2
-    container_name: tempo
-    command: ["-config.file=/etc/tempo.yaml"]
-    volumes:
-      - ./docker/config/tempo/tempo.yml:/etc/tempo.yaml:ro
-      - ./docker/data/tempo:/tmp/tempo
-    ports:
-      - "3110:3100" # Tempo
-      - "9411:9411" # zipkin
-    networks:
-      - monitoring
-
-  grafana:
-    image: grafana/grafana:10.1.0
-    container_name: grafana
-    volumes:
-      - ./docker/config/grafana:/etc/grafana/provisioning/datasources:ro
-    environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
-    ports:
-      - "3001:3000"
-    networks:
-      - monitoring
-
-  promtail:
-    image: grafana/promtail:latest
-    container_name: promtail
-    restart: unless-stopped
-    volumes:
-      - ./docker/config/promtail/config.yaml:/etc/promtail/config.yaml # Mount the Promtail config file
-      - /var/run/docker.sock:/var/run/docker.sock # Mount the Docker socket
-    command: ["-config.file=/etc/promtail/config.yaml"]
-    depends_on: # Ensure loki is available before promtail starts
-      - loki
-    networks:
-      - monitoring
-
-
   rotoreader-postgres:
     image: pgvector/pgvector:pg18
     container_name: rotoreader-postgres
@@ -169,6 +107,75 @@ services:
         condition: service_healthy
     networks:
       - sportsstack
+
+
+# Loki - Log Aggregation
+  loki:
+    image: grafana/loki:2.8.2
+    container_name: loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    ports:
+      - "3101:3100"
+    networks:
+      - monitoring
+
+# Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:v2.46.0
+    command:
+      - --enable-feature=exemplar-storage
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./docker/config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring
+
+
+# Tempo - Tracing Backend
+  tempo:
+    image: grafana/tempo:2.2.2
+    container_name: tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./docker/config/tempo/tempo.yml:/etc/tempo.yaml:ro
+      - ./docker/data/tempo:/tmp/tempo
+    ports:
+      - "3110:3100" # Tempo
+      - "9411:9411" # zipkin
+    networks:
+      - monitoring
+
+# Grafana - Visualization
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: grafana
+    volumes:
+      - ./docker/config/grafana:/etc/grafana/provisioning/datasources:ro
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    ports:
+      - "3001:3000"
+    networks:
+      - monitoring
+
+# Promtail - Log Collector
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - ./docker/config/promtail/config.yaml:/etc/promtail/config.yaml # Mount the Promtail config file
+      - /var/run/docker.sock:/var/run/docker.sock # Mount the Docker socket
+    command: ["-config.file=/etc/promtail/config.yaml"]
+    depends_on: # Ensure loki is available before promtail starts
+      - loki
+    networks:
+      - monitoring
+
 
   # zookeeper:
   #   image: confluentinc/cp-zookeeper:7.5.0
