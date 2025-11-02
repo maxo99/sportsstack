@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rotoreader
+  namespace: sportsstack
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rotoreader
+  template:
+    metadata:
+      labels:
+        app: rotoreader
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: db-config
+          command: ["sh", "-c"]
+          args:
+            - >
+              until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -t 2; do
+                echo "waiting for postgres at $POSTGRES_HOST:$POSTGRES_PORT";
+                sleep 2;
+              done
+      containers:
+        - name: api
+          image: maxo5499/sportsstack-rotoreader:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: LOG_LEVEL
+              value: INFO
+            - name: ROOT_DIR
+              value: /app
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+                  # TODO: Replace with managed secret store before production
+          envFrom:
+            - configMapRef:
+                name: db-config
+          ports:
+            - containerPort: 8081
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rotoreader
+  namespace: sportsstack
+spec:
+  type: ClusterIP
+  selector:
+    app: rotoreader
+  ports:
+    - port: 8081
+      targetPort: 8081
+      name: http

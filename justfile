@@ -1,0 +1,72 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+ns := "sportsstack"
+kind_cluster := "sportsstack"
+rotoreader_image := "maxo5499/sportsstack-rotoreader:latest"
+api_gateway_image := "maxo5499/sportsstack-api-gateway:latest"
+
+build-rotoreader:
+	./rotoreader/build.sh
+
+build-api-gateway:
+	./api-gateway/build.sh
+
+kind-load-rotoreader:
+	kind load docker-image {{rotoreader_image}} --name {{kind_cluster}}
+
+kind-load-api-gateway:
+	kind load docker-image {{api_gateway_image}} --name {{kind_cluster}}
+
+k8s-create-secret:
+	kubectl -n {{ns}} delete secret postgres-secret --ignore-not-found
+	kubectl -n {{ns}} create secret generic postgres-secret --from-env-file=.env
+
+k8s-apply:
+	kubectl apply -f k8s/namespace.yaml
+	kubectl apply -f k8s/db-config.yaml
+	kubectl apply -f k8s/postgres.yaml
+	kubectl apply -f k8s/rotoreader.yaml
+	kubectl apply -f k8s/rotoreader-hpa.yaml
+	kubectl apply -f k8s/rotoreader-collect-cronjob.yaml
+	kubectl apply -f k8s/api-gateway.yaml
+	kubectl apply -f k8s/ingress.yaml
+
+k8s-rollouts:
+	kubectl -n {{ns}} rollout status statefulset/postgres
+	kubectl -n {{ns}} rollout status deploy/rotoreader
+	kubectl -n {{ns}} rollout status deploy/api-gateway
+
+restart-rotoreader:
+	kubectl -n {{ns}} rollout restart deploy/rotoreader
+	kubectl -n {{ns}} rollout status deploy/rotoreader
+
+restart-api-gateway:
+	kubectl -n {{ns}} rollout restart deploy/api-gateway
+	kubectl -n {{ns}} rollout status deploy/api-gateway
+
+logs-rotoreader:
+	kubectl -n {{ns}} logs deploy/rotoreader -c api --tail=200 -f
+
+logs-api-gateway:
+	kubectl -n {{ns}} logs deploy/api-gateway --tail=200 -f
+
+logs-rotoreader-init:
+	for pod in $(kubectl -n {{ns}} get pods -l app=rotoreader -o name); do kubectl -n {{ns}} logs "$pod" -c wait-for-postgres --tail=200; done
+
+describe-rotoreader:
+	kubectl -n {{ns}} describe pods -l app=rotoreader
+
+events-rotoreader:
+	kubectl -n {{ns}} get events --sort-by=.lastTimestamp
+
+pf-rotoreader:
+	kubectl -n {{ns}} port-forward svc/rotoreader 8081:8081
+
+pf-api-gateway:
+	kubectl -n {{ns}} port-forward svc/api-gateway 8088:8088
+
+pf-ingress:
+	kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 8080:80
+
+db-shell:
+	kubectl -n {{ns}} exec -it svc/postgres -- psql -U postgres -d rotoreader
