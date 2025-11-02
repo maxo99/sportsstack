@@ -16,6 +16,16 @@ spec:
                 name: api-gateway
                 port:
                   number: 8088
+    - host: oddstracker.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: oddstracker
+                port:
+                  number: 8080
     - host: rotoreader.local
       http:
         paths:
