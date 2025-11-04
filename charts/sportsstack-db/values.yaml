@@ -1,0 +1,33 @@
+# Default values for sportsstack-db.
+# Mode can be: incluster | external
+mode: incluster
+
+namespace: sportsstack
+
+postgres:
+  host: postgres
+  port: 5432
+  db: sportsstack
+  user: postgres
+  secretName: postgres-secret # Must exist; created via `kubectl create secret ... --from-env-file=.env`
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  storage:
+    className: local-path
+    size: 1Gi
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+
+# Optional: override service names
+serviceNames:
+  postgres: postgres
+  postgresHeadless: postgres-hl
+  statefulSet: postgres
+  configMap: db-config

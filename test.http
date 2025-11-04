@@ -1,31 +1,57 @@
 
-
+###
+#
+#
+#
+@GATEWAY_URL = http://localhost:8088
+@ODDSTRACKER_URL = {{GATEWAY_URL}}/api/oddstracker
+@ROTOREADER_URL = {{GATEWAY_URL}}/api/rotoreader
+#
+###
+GET {{GATEWAY_URL}}/aggregate/api-docs
 ###
 
-GET http://localhost:8088/api/oddstracker
-
+# Health Check API - oddstracker
+GET {{ODDSTRACKER_URL}}
 ###
 
-GET http://localhost:8088/api/rotoreader
 
+
+# Health Check API - rotoreader
+GET {{ROTOREADER_URL}}
 ###
-
-GET http://localhost:8088/api/rotoreader/feed?size=1
-
-
-PUT http://localhost:8088/api/rotoreader/collect?limit=1
-
+#
+#
+#
+#
+### oddstracker APIs
+#
+#
+#
+POST {{ODDSTRACKER_URL}}/collect
 ###
-
-GET http://localhost:8088/api/oddstracker
-
+# Test Prometheus Endpoint
+GET {{ODDSTRACKER_URL}}/metrics
 ###
-
-GET http://localhost:8088
-
+# Get docs
+GET {{ODDSTRACKER_URL}}/docs
 ###
-
-GET http://localhost:8088/aggregate/api-docs
-
-
+# Get docs
+GET {{ODDSTRACKER_URL}}/openapi.json
 ###
+#
+#
+#
+#
+### rotoreader APIs
+#
+#
+#
+###
+GET {{ROTOREADER_URL}}/feed?size=1
+###
+PUT {{ROTOREADER_URL}}/collect
+###
+#
+
+

@@ -5,6 +5,6 @@ metadata:
   namespace: {{ .Values.namespace }}
 data:
   POSTGRES_HOST: {{ ternary .Values.serviceNames.postgres .Values.postgres.host (eq .Values.mode "incluster") | quote }}
-  POSTGRES_PORT: {{ printf "%d" .Values.postgres.port | quote }}
+  POSTGRES_PORT: {{ .Values.postgres.port | toString | quote }}
   POSTGRES_DB: {{ .Values.postgres.db | quote }}
   POSTGRES_USER: {{ .Values.postgres.user | quote }}

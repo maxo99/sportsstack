@@ -38,6 +38,8 @@ spec:
               value: /app
             - name: APP_PORT
               value: "8080"
+            - name: RAW_STORE
+              value: "false"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:

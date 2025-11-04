@@ -16,8 +16,13 @@ This repo contains the SportsStack services plus container orchestration assets.
 1. Build images: `just build-rotoreader` / `just build-oddstracker` / `just build-api-gateway`.
 2. Load them into the Kind cluster: `just kind-load-rotoreader` / `just kind-load-oddstracker` / `just kind-load-api-gateway`.
 3. Refresh secrets from `.env`: `just k8s-create-secret`.
-4. Apply or update manifests: `just k8s-apply`.
-5. Monitor rollouts: `just k8s-rollouts`.
+4. Choose how to manage the database:
+   - With raw manifests (current default): `just k8s-apply` includes `k8s/db-config.yaml` and `k8s/postgres.yaml`.
+   - With Helm (optional, recommended for easy switch to external DB):
+     - In-cluster DB: `just helm-db-install`
+     - External DB: `just helm-db-install-external host=mydb.example.com`
+5. Apply or update the remaining manifests: `just k8s-apply` (or `just k8s-apply-no-db` if Helm is used for DB).
+6. Monitor rollouts: `just k8s-rollouts`.
 
 ## Useful Commands
 
@@ -33,6 +38,7 @@ This repo contains the SportsStack services plus container orchestration assets.
 - `rotoreader/`: FastAPI data collector, Dockerfile builds `maxo5499/sportsstack-rotoreader:latest`.
 - `oddstracker/`: FastAPI betting odds tracker, Dockerfile builds `maxo5499/sportsstack-oddstracker:latest`.
 - `k8s/`: Namespace, ConfigMap, Postgres StatefulSet, rotoreader and oddstracker Deployments/HPAs/CronJobs, API gateway Deployment, ingress, and setup README.
+- `charts/sportsstack-db/`: Helm chart for DB ConfigMap and optional in‑cluster Postgres. Toggle external vs in‑cluster DB without changing app manifests.
 - `.github/copilot-instructions.md`: Contributor guidance for this repository.
 
 Follow the sequence above to rebuild and redeploy as changes are made. The `justfile` is the central entry point for repeated operations.

@@ -41,6 +41,17 @@ k8s-apply:
 	kubectl apply -f k8s/api-gateway.yaml
 	kubectl apply -f k8s/ingress.yaml
 
+k8s-apply-no-db:
+	kubectl apply -f k8s/namespace.yaml
+	kubectl apply -f k8s/rotoreader.yaml
+	kubectl apply -f k8s/rotoreader-hpa.yaml
+	kubectl apply -f k8s/rotoreader-collect-cronjob.yaml
+	kubectl apply -f k8s/oddstracker.yaml
+	kubectl apply -f k8s/oddstracker-hpa.yaml
+	kubectl apply -f k8s/oddstracker-collect-cronjob.yaml
+	kubectl apply -f k8s/api-gateway.yaml
+	kubectl apply -f k8s/ingress.yaml
+
 k8s-rollouts:
 	kubectl -n {{ns}} rollout status statefulset/postgres
 	kubectl -n {{ns}} rollout status deploy/rotoreader
@@ -100,3 +111,36 @@ pf-ingress:
 
 db-shell:
 	kubectl -n {{ns}} exec -it svc/postgres -- psql -U postgres -d sportsstack
+
+# Helm-based management for database (ConfigMap + optional in-cluster Postgres)
+helm-db-template:
+	helm template db charts/sportsstack-db -n {{ns}} -f charts/sportsstack-db/values.yaml
+
+helm-db-install:
+	helm upgrade --install db charts/sportsstack-db -n {{ns}} --create-namespace -f charts/sportsstack-db/values.yaml
+
+helm-db-install-external host="my-external-postgres.example.com":
+	# Render ConfigMap pointing to an external Postgres; does not deploy StatefulSet/Service
+	helm upgrade --install db charts/sportsstack-db -n {{ns}} --create-namespace \
+	  -f charts/sportsstack-db/values-external.yaml \
+	  --set postgres.host='{{host}}'
+
+helm-db-uninstall:
+	helm uninstall db -n {{ns}}
+
+# Migrate existing non-Helm DB resources to Helm-managed ones
+# This removes previously kubectl-applied resources so Helm can create them.
+# It keeps PVCs to preserve data.
+k8s-db-preroll-for-helm:
+	# Delete shared ConfigMap and Services so Helm can own them
+	kubectl -n {{ns}} delete configmap db-config --ignore-not-found
+	kubectl -n {{ns}} delete svc postgres --ignore-not-found
+	kubectl -n {{ns}} delete svc postgres-hl --ignore-not-found
+	# Delete StatefulSet but KEEP the PVCs (data)
+	kubectl -n {{ns}} delete statefulset postgres --ignore-not-found
+	# Wait for any postgres pods to terminate (best-effort)
+	kubectl -n {{ns}} wait --for=delete pod -l app=postgres --timeout=120s || true
+
+# Danger: wipe Postgres data (use only if you want a clean DB)
+k8s-db-delete-pvcs:
+	kubectl -n {{ns}} delete pvc pgdata-postgres-0 --ignore-not-found || true
