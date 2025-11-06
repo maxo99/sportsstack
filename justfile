@@ -5,6 +5,7 @@ kind_cluster := "sportsstack"
 rotoreader_image := "maxo5499/sportsstack-rotoreader:latest"
 oddstracker_image := "maxo5499/sportsstack-oddstracker:latest"
 api_gateway_image := "maxo5499/sportsstack-api-gateway:latest"
+go_sportsagent_image := "maxo5499/sportsstack-go-sportsagent:latest"
 
 build-rotoreader:
 	./rotoreader/build.sh
@@ -15,6 +16,9 @@ build-oddstracker:
 build-api-gateway:
 	./api-gateway/build.sh
 
+build-go-sportsagent:
+	./go-sportsagent/build.sh
+
 kind-load-rotoreader:
 	kind load docker-image {{rotoreader_image}} --name {{kind_cluster}}
 
@@ -23,6 +27,9 @@ kind-load-oddstracker:
 
 kind-load-api-gateway:
 	kind load docker-image {{api_gateway_image}} --name {{kind_cluster}}
+
+kind-load-go-sportsagent:
+	kind load docker-image {{go_sportsagent_image}} --name {{kind_cluster}}
 
 k8s-create-secret:
 	kubectl -n {{ns}} delete secret postgres-secret --ignore-not-found
@@ -70,6 +77,10 @@ restart-api-gateway:
 	kubectl -n {{ns}} rollout restart deploy/api-gateway
 	kubectl -n {{ns}} rollout status deploy/api-gateway
 
+restart-go-sportsagent:
+	kubectl -n {{ns}} rollout restart deploy/go-sportsagent
+	kubectl -n {{ns}} rollout status deploy/go-sportsagent
+
 logs-rotoreader:
 	kubectl -n {{ns}} logs deploy/rotoreader -c api --tail=200 -f
 
@@ -78,6 +89,9 @@ logs-oddstracker:
 
 logs-api-gateway:
 	kubectl -n {{ns}} logs deploy/api-gateway --tail=200 -f
+
+logs-go-sportsagent:
+	kubectl -n {{ns}} logs deploy/go-sportsagent -c api --tail=200 -f
 
 logs-rotoreader-init:
 	for pod in $(kubectl -n {{ns}} get pods -l app=rotoreader -o name); do kubectl -n {{ns}} logs "$pod" -c wait-for-postgres --tail=200; done
@@ -90,6 +104,9 @@ describe-rotoreader:
 
 describe-oddstracker:
 	kubectl -n {{ns}} describe pods -l app=oddstracker
+
+describe-go-sportsagent:
+	kubectl -n {{ns}} describe pods -l app=go-sportsagent
 
 events-rotoreader:
 	kubectl -n {{ns}} get events --sort-by=.lastTimestamp
@@ -105,6 +122,9 @@ pf-oddstracker:
 
 pf-api-gateway:
 	kubectl -n {{ns}} port-forward svc/api-gateway 8088:8088
+
+pf-go-sportsagent:
+	kubectl -n {{ns}} port-forward svc/go-sportsagent 8082:8082
 
 pf-ingress:
 	kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 8080:80
@@ -193,3 +213,19 @@ k8s-rotoreader-preroll-for-helm:
     kubectl -n {{ns}} delete hpa rotoreader --ignore-not-found
     kubectl -n {{ns}} delete cronjob rotoreader-collect-hourly --ignore-not-found
     kubectl -n {{ns}} wait --for=delete pod -l app=rotoreader --timeout=120s || true
+
+# Helm-based management for go-sportsagent
+helm-go-sportsagent-template:
+    helm template go-sportsagent charts/go-sportsagent -n {{ns}} -f charts/go-sportsagent/values.yaml
+
+helm-go-sportsagent-install:
+    helm upgrade --install go-sportsagent charts/go-sportsagent -n {{ns}} --create-namespace -f charts/go-sportsagent/values.yaml
+
+helm-go-sportsagent-uninstall:
+    helm uninstall go-sportsagent -n {{ns}}
+
+k8s-go-sportsagent-preroll-for-helm:
+    kubectl -n {{ns}} delete deployment go-sportsagent --ignore-not-found
+    kubectl -n {{ns}} delete svc go-sportsagent --ignore-not-found
+    kubectl -n {{ns}} delete hpa go-sportsagent --ignore-not-found
+    kubectl -n {{ns}} wait --for=delete pod -l app=go-sportsagent --timeout=120s || true

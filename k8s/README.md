@@ -119,6 +119,11 @@ just k8s-rotoreader-preroll-for-helm  # run once to migrate from kubectl
 just helm-api-gateway-install
 just helm-api-gateway-uninstall
 just k8s-api-gateway-preroll-for-helm  # run once to migrate from kubectl
+
+# Go SportsAgent
+just helm-go-sportsagent-install
+just helm-go-sportsagent-uninstall
+just k8s-go-sportsagent-preroll-for-helm  # run once to migrate from kubectl
 ```
 
 ### Full Helm-based stack workflow
@@ -137,6 +142,7 @@ just k8s-api-gateway-preroll-for-helm  # run once to migrate from kubectl
    just k8s-oddstracker-preroll-for-helm
    just k8s-rotoreader-preroll-for-helm
    just k8s-api-gateway-preroll-for-helm
+   just k8s-go-sportsagent-preroll-for-helm
    ```
 
 3. Install charts:
@@ -146,6 +152,7 @@ just k8s-api-gateway-preroll-for-helm  # run once to migrate from kubectl
    just helm-oddstracker-install
    just helm-rotoreader-install
    just helm-api-gateway-install
+   just helm-go-sportsagent-install
    ```
 
 4. Apply remaining manifests (ingress):
