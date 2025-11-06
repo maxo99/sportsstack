@@ -2,12 +2,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.serviceNames.postgresHeadless }}
-  namespace: {{ .Values.namespace }}
+  name: postgres-hl
+  namespace: sportsstack
 spec:
   clusterIP: None
   selector:
-    app: {{ .Values.serviceNames.statefulSet }}
+    app: postgres
   ports:
     - name: postgres
       port: 5432
@@ -16,38 +16,38 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ .Values.serviceNames.statefulSet }}
-  namespace: {{ .Values.namespace }}
+  name: postgres
+  namespace: sportsstack
 spec:
-  serviceName: {{ .Values.serviceNames.postgresHeadless }}
+  serviceName: postgres-hl
   replicas: 1
   selector:
     matchLabels:
-      app: {{ .Values.serviceNames.statefulSet }}
+      app: postgres
   template:
     metadata:
       labels:
-        app: {{ .Values.serviceNames.statefulSet }}
+        app: postgres
     spec:
       containers:
         - name: postgres
-          image: {{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}
-          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
           env:
             - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
-                  name: {{ .Values.serviceNames.configMap }}
+                  name: db-config
                   key: POSTGRES_DB
             - name: POSTGRES_USER
               valueFrom:
                 configMapKeyRef:
-                  name: {{ .Values.serviceNames.configMap }}
+                  name: db-config
                   key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.postgres.secretName }}
+                  name: postgres-secret
                   key: POSTGRES_PASSWORD
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
@@ -55,11 +55,11 @@ spec:
             - containerPort: 5432
           resources:
             requests:
-              cpu: {{ .Values.postgres.resources.requests.cpu | quote }}
-              memory: {{ .Values.postgres.resources.requests.memory | quote }}
+              cpu: 50m
+              memory: 256Mi
             limits:
-              cpu: {{ .Values.postgres.resources.limits.cpu | quote }}
-              memory: {{ .Values.postgres.resources.limits.memory | quote }}
+              cpu: 500m
+              memory: 1Gi
           volumeMounts:
             - name: pgdata
               mountPath: /var/lib/postgresql/data
@@ -102,12 +102,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.serviceNames.postgres }}
-  namespace: {{ .Values.namespace }}
+  name: postgres
+  namespace: sportsstack
 spec:
   type: ClusterIP
   selector:
-    app: {{ .Values.serviceNames.statefulSet }}
+    app: postgres
   ports:
     - name: postgres
       port: 5432

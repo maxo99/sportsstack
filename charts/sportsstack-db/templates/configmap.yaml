@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.serviceNames.configMap }}
-  namespace: {{ .Values.namespace }}
+  name: db-config
+  namespace: sportsstack
 data:
-  POSTGRES_HOST: {{ ternary .Values.serviceNames.postgres .Values.postgres.host (eq .Values.mode "incluster") | quote }}
+  POSTGRES_HOST: {{ ternary "postgres" .Values.postgres.host (eq .Values.mode "incluster") | quote }}
   POSTGRES_PORT: {{ .Values.postgres.port | toString | quote }}
   POSTGRES_DB: {{ .Values.postgres.db | quote }}
   POSTGRES_USER: {{ .Values.postgres.user | quote }}

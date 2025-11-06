@@ -1,14 +1,11 @@
 # Values for external Postgres (no StatefulSet/Services rendered)
 mode: external
 
-namespace: sportsstack
-
 postgres:
   host: my-external-postgres.example.com
   port: 5432
   db: sportsstack
   user: postgres
-  secretName: postgres-secret
   storage:
     className: ""
     size: 1Gi

@@ -70,11 +70,11 @@ kubectl -n sportsstack rollout status deploy/api-gateway
 If you want to keep a single environment today but retain the option to move Postgres outside the cluster later, you can manage only the database bits (ConfigMap and, optionally, the in‑cluster StatefulSet) with a small Helm chart found at `charts/sportsstack-db`.
 
 - In-cluster Postgres (default):
-   - Creates/updates `ConfigMap/db-config`, Services `postgres`/`postgres-hl`, and `StatefulSet/postgres` with a PVC sized from values.
-   - Storage class and size are configurable. Defaults target kind’s `local-path` class.
+  - Creates/updates `ConfigMap/db-config`, Services `postgres`/`postgres-hl`, and `StatefulSet/postgres` with a PVC sized from values.
+  - Storage class and size are configurable. Defaults target kind’s `local-path` class.
 
 - External Postgres:
-   - Renders only `ConfigMap/db-config` pointing your apps to the external host; no StatefulSet/Service are created.
+  - Renders only `ConfigMap/db-config` pointing your apps to the external host; no StatefulSet/Service are created.
 
 Use the just recipes:
 
@@ -99,3 +99,59 @@ Important:
 
 - When using the Helm chart, skip applying `k8s/db-config.yaml` and `k8s/postgres.yaml` to avoid duplicate resources.
 - The chart expects a Secret named `postgres-secret` with `POSTGRES_PASSWORD` in the `sportsstack` namespace (create it from `.env` as shown above).
+
+## Optional: manage services via Helm
+
+You can also manage oddstracker, rotoreader, and api-gateway using Helm charts in `charts/`. Each chart bundles Deployment and Service (plus HPA and CronJob for oddstracker/rotoreader) with values for image tags, replicas, and env vars.
+
+```bash
+# Oddstracker
+just helm-oddstracker-install
+just helm-oddstracker-uninstall
+just k8s-oddstracker-preroll-for-helm  # run once to migrate from kubectl
+
+# Rotoreader
+just helm-rotoreader-install
+just helm-rotoreader-uninstall
+just k8s-rotoreader-preroll-for-helm  # run once to migrate from kubectl
+
+# API Gateway
+just helm-api-gateway-install
+just helm-api-gateway-uninstall
+just k8s-api-gateway-preroll-for-helm  # run once to migrate from kubectl
+```
+
+### Full Helm-based stack workflow
+
+1. Create the namespace and secret:
+
+   ```bash
+   kubectl apply -f k8s/namespace.yaml
+   just k8s-create-secret
+   ```
+
+2. Migrate existing resources (once):
+
+   ```bash
+   just k8s-db-preroll-for-helm
+   just k8s-oddstracker-preroll-for-helm
+   just k8s-rotoreader-preroll-for-helm
+   just k8s-api-gateway-preroll-for-helm
+   ```
+
+3. Install charts:
+
+   ```bash
+   just helm-db-install
+   just helm-oddstracker-install
+   just helm-rotoreader-install
+   just helm-api-gateway-install
+   ```
+
+4. Apply remaining manifests (ingress):
+
+   ```bash
+   kubectl apply -f k8s/ingress.yaml
+   ```
+
+When using Helm charts, skip applying the corresponding `k8s/*.yaml` files to avoid duplicate resources.

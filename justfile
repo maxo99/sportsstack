@@ -143,4 +143,53 @@ k8s-db-preroll-for-helm:
 
 # Danger: wipe Postgres data (use only if you want a clean DB)
 k8s-db-delete-pvcs:
-	kubectl -n {{ns}} delete pvc pgdata-postgres-0 --ignore-not-found || true
+    kubectl -n {{ns}} delete pvc pgdata-postgres-0 --ignore-not-found || true
+
+# Helm-based management for api-gateway
+helm-api-gateway-template:
+    helm template api-gateway charts/api-gateway -n {{ns}} -f charts/api-gateway/values.yaml
+
+helm-api-gateway-install:
+    helm upgrade --install api-gateway charts/api-gateway -n {{ns}} --create-namespace -f charts/api-gateway/values.yaml
+
+helm-api-gateway-uninstall:
+    helm uninstall api-gateway -n {{ns}}
+
+k8s-api-gateway-preroll-for-helm:
+    kubectl -n {{ns}} delete deployment api-gateway --ignore-not-found
+    kubectl -n {{ns}} delete svc api-gateway --ignore-not-found
+    kubectl -n {{ns}} wait --for=delete pod -l app=api-gateway --timeout=120s || true
+
+# Helm-based management for oddstracker
+helm-oddstracker-template:
+    helm template oddstracker charts/oddstracker -n {{ns}} -f charts/oddstracker/values.yaml
+
+helm-oddstracker-install:
+    helm upgrade --install oddstracker charts/oddstracker -n {{ns}} --create-namespace -f charts/oddstracker/values.yaml
+
+helm-oddstracker-uninstall:
+    helm uninstall oddstracker -n {{ns}}
+
+k8s-oddstracker-preroll-for-helm:
+    kubectl -n {{ns}} delete deployment oddstracker --ignore-not-found
+    kubectl -n {{ns}} delete svc oddstracker --ignore-not-found
+    kubectl -n {{ns}} delete hpa oddstracker --ignore-not-found
+    kubectl -n {{ns}} delete cronjob oddstracker-collect-hourly --ignore-not-found
+    kubectl -n {{ns}} wait --for=delete pod -l app=oddstracker --timeout=120s || true
+
+# Helm-based management for rotoreader
+helm-rotoreader-template:
+    helm template rotoreader charts/rotoreader -n {{ns}} -f charts/rotoreader/values.yaml
+
+helm-rotoreader-install:
+    helm upgrade --install rotoreader charts/rotoreader -n {{ns}} --create-namespace -f charts/rotoreader/values.yaml
+
+helm-rotoreader-uninstall:
+    helm uninstall rotoreader -n {{ns}}
+
+k8s-rotoreader-preroll-for-helm:
+    kubectl -n {{ns}} delete deployment rotoreader --ignore-not-found
+    kubectl -n {{ns}} delete svc rotoreader --ignore-not-found
+    kubectl -n {{ns}} delete hpa rotoreader --ignore-not-found
+    kubectl -n {{ns}} delete cronjob rotoreader-collect-hourly --ignore-not-found
+    kubectl -n {{ns}} wait --for=delete pod -l app=rotoreader --timeout=120s || true
