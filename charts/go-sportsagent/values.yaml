@@ -1,0 +1,15 @@
+image:
+  repository: maxo5499/sportsstack-go-sportsagent
+  tag: latest
+
+replicas: 2
+
+env:
+  oddstrackerServiceUrl: http://oddstracker:8080
+  rotoreaderServiceUrl: http://rotoreader:8081
+  apiGatewayServiceUrl: http://api-gateway:8088
+
+hpa:
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 75

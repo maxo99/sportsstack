@@ -1,0 +1,11 @@
+# Values for external Postgres (no StatefulSet/Services rendered)
+mode: external
+
+postgres:
+  host: my-external-postgres.example.com
+  port: 5432
+  db: sportsstack
+  user: postgres
+  storage:
+    className: ""
+    size: 1Gi

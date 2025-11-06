@@ -1,0 +1,6 @@
+apiVersion: v2
+name: sportsstack-db
+version: 0.1.0
+description: Helm chart to manage SportsStack database configuration and optional in-cluster Postgres
+kubeVersion: ">=1.23.0"
+type: application

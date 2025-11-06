@@ -1,0 +1,11 @@
+# Mode can be: incluster | external
+mode: incluster
+
+postgres:
+  host: postgres
+  port: 5432
+  db: sportsstack
+  user: postgres
+  storage:
+    className: local-path
+    size: 1Gi
