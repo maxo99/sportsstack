@@ -132,6 +132,14 @@ pf-ingress:
 db-shell:
 	kubectl -n {{ns}} exec -it svc/postgres -- psql -U postgres -d sportsstack
 
+helm-observability-install:
+	helm dependency update charts/observability
+	helm upgrade --install observability charts/observability -n {{ns}} --create-namespace -f charts/observability/values.yaml
+
+helm-observability-uninstall:
+	helm uninstall observability -n {{ns}} || true
+	kubectl -n {{ns}} delete pvc --all -l app=loki --ignore-not-found || true
+
 # Helm-based management for database (ConfigMap + optional in-cluster Postgres)
 helm-db-template:
 	helm template db charts/sportsstack-db -n {{ns}} -f charts/sportsstack-db/values.yaml
@@ -142,8 +150,8 @@ helm-db-install:
 helm-db-install-external host="my-external-postgres.example.com":
 	# Render ConfigMap pointing to an external Postgres; does not deploy StatefulSet/Service
 	helm upgrade --install db charts/sportsstack-db -n {{ns}} --create-namespace \
-	  -f charts/sportsstack-db/values-external.yaml \
-	  --set postgres.host='{{host}}'
+	-f charts/sportsstack-db/values-external.yaml \
+	--set postgres.host='{{host}}'
 
 helm-db-uninstall:
 	helm uninstall db -n {{ns}}
@@ -229,3 +237,8 @@ k8s-go-sportsagent-preroll-for-helm:
     kubectl -n {{ns}} delete svc go-sportsagent --ignore-not-found
     kubectl -n {{ns}} delete hpa go-sportsagent --ignore-not-found
     kubectl -n {{ns}} wait --for=delete pod -l app=go-sportsagent --timeout=120s || true
+
+k8s-get-controlplane-details:
+	kubectl cluster-info
+	kubectl get nodes -o wide
+	kubectl get namespaces
