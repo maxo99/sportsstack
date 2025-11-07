@@ -4,6 +4,7 @@
 #
 #
 @GATEWAY_URL = http://localhost:8088
+# @GATEWAY_URL = http://172.19.0.4:8088
 @ODDSTRACKER_URL = {{GATEWAY_URL}}/api/oddstracker
 @ROTOREADER_URL = {{GATEWAY_URL}}/api/rotoreader
 #
@@ -53,5 +54,14 @@ GET {{ROTOREADER_URL}}/feed?size=1
 PUT {{ROTOREADER_URL}}/collect
 ###
 #
+# Prometheus
+GET http://172.19.0.4:30090/api/v1/query?query=up
+###
+# GET http://172.19.0.4:30090/api/v1/query?query={namespace="sportsstack"}
+GET http://172.19.0.4:30090/api/v1/query?query=%7Bnamespace%3D%22sportsstack%22%7D
 
-
+###
+GET http://172.19.0.4:30090/api/v1/query?query=http_requests_total
+#
+###
+GET http://172.19.0.4:30090/api/v1/query?query=go_goroutines
