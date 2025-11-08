@@ -60,7 +60,7 @@ k8s-apply-no-db:
 	kubectl apply -f k8s/ingress.yaml
 
 k8s-rollouts:
-	kubectl -n {{ns}} rollout status statefulset/postgres
+	# kubectl -n {{ns}} rollout status statefulset/postgres
 	kubectl -n {{ns}} rollout status deploy/rotoreader
 	kubectl -n {{ns}} rollout status deploy/oddstracker
 	kubectl -n {{ns}} rollout status deploy/api-gateway
@@ -131,6 +131,18 @@ pf-ingress:
 
 db-shell:
 	kubectl -n {{ns}} exec -it svc/postgres -- psql -U postgres -d sportsstack
+
+oddstracker-db-shell:
+	kubectl -n {{ns}} exec -it oddstracker-postgres-0 -- psql -U postgres -d oddstracker
+
+oddstracker-db-tables:
+	kubectl -n {{ns}} exec -it oddstracker-postgres-0 -- psql -U postgres -d oddstracker -c "\dt"
+
+rotoreader-db-shell:
+	kubectl -n {{ns}} exec -it rotoreader-postgres-0 -- psql -U postgres -d rotoreader
+
+rotoreader-db-tables:
+	kubectl -n {{ns}} exec -it rotoreader-postgres-0 -- psql -U postgres -d rotoreader -c "\dt"
 
 helm-observability-install:
 	helm dependency update charts/observability

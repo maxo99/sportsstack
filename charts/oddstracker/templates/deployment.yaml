@@ -19,7 +19,7 @@ spec:
           imagePullPolicy: IfNotPresent
           envFrom:
             - configMapRef:
-                name: db-config
+                name: oddstracker-db-config
           command: ["sh", "-c"]
           args:
             - >
@@ -52,7 +52,7 @@ spec:
                   key: THEODDSAPI_KEY
           envFrom:
             - configMapRef:
-                name: db-config
+                name: oddstracker-db-config
           ports:
             - containerPort: 8080
           resources:

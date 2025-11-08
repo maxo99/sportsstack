@@ -35,7 +35,15 @@ grafana:
         access: proxy
         url: http://observability-loki:3100
         isDefault: false
-
+      - name: oddstracker-timescaledb
+        type: postgres
+        access: proxy
+        url: oddstracker-postgres.sportsstack.svc.cluster.local
+        database: oddstracker
+        user: postgres
+        secureJsonData:
+          password: postgrespassword
+        isDefault: false
 loki-stack:
   enabled: true
   loki:

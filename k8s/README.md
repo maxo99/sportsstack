@@ -62,7 +62,7 @@ kubectl -n sportsstack rollout status deploy/api-gateway
 - `kubectl -n sportsstack get pods` should show `postgres`, `rotoreader`, `oddstracker`, and `api-gateway` workloads.
 - The cron jobs `rotoreader-collect-hourly` and `oddstracker-collect-hourly` invoke their respective collection endpoints each hour.
 - The HPAs scale `rotoreader` and `oddstracker` between 2 and 6 replicas according to CPU utilization.
-- Both services share the `sportsstack` Postgres database provisioned by the StatefulSet in this namespace.
+- Each service manages its own database: oddstracker uses TimescaleDB (PG15), rotoreader uses pgvector (PG18).
 - Update the ingress hosts or TLS configuration as you promote beyond local environments.
 
 ## Optional: manage the database via Helm

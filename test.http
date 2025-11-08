@@ -29,7 +29,10 @@ GET {{ROTOREADER_URL}}
 #
 #
 #
-POST {{ODDSTRACKER_URL}}/collect
+POST {{ODDSTRACKER_URL}}/collect?provider_key=theoddsapi
+#
+###
+GET {{ODDSTRACKER_URL}}/event
 ###
 # Test Prometheus Endpoint
 GET {{ODDSTRACKER_URL}}/metrics
@@ -65,3 +68,4 @@ GET http://172.19.0.4:30090/api/v1/query?query=http_requests_total
 #
 ###
 GET http://172.19.0.4:30090/api/v1/query?query=go_goroutines
+###
