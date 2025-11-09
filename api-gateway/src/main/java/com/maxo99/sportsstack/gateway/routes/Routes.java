@@ -10,6 +10,7 @@ import org.springframework.cloud.gateway.server.mvc.handler.GatewayRouterFunctio
 import org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctions;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.function.HandlerFilterFunction;
 import org.springframework.web.servlet.function.RequestPredicates;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -19,10 +20,24 @@ import org.springframework.web.servlet.function.ServerResponse;
 @Configuration
 public class Routes {
 
+        private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(Routes.class);
+
         @Value("${oddstracker.service.url}")
         private String oddstrackerServiceUrl;
         @Value("${rotoreader.service.url}")
         private String rotoreaderServiceUrl;
+        @Value("${gosportsagent.service.url}")
+        private String gosportsagentServiceUrl;
+
+        private HandlerFilterFunction<ServerResponse, ServerResponse> logRequest() {
+                return (request, next) -> {
+                        log.info("Incoming request: {} {} from {}",
+                                        request.method(),
+                                        request.uri().getPath(),
+                                        request.remoteAddress().orElse(null));
+                        return next.handle(request);
+                };
+        }
 
         @Bean
         public RouterFunction<ServerResponse> oddstrackerServiceRoute() {
@@ -30,6 +45,7 @@ public class Routes {
                                 .route(RequestPredicates.path("/api/oddstracker/**"),
                                                 HandlerFunctions.http(oddstrackerServiceUrl))
                                 .before(BeforeFilterFunctions.stripPrefix(2))
+                                .filter(logRequest())
                                 .filter(CircuitBreakerFilterFunctions.circuitBreaker("oddstrackerServiceCircuitBreaker",
                                                 URI.create("forward:/fallbackRoute")))
                                 .build();
@@ -41,7 +57,22 @@ public class Routes {
                                 .route(RequestPredicates.path("/api/rotoreader/**"),
                                                 HandlerFunctions.http(rotoreaderServiceUrl))
                                 .before(BeforeFilterFunctions.stripPrefix(2))
+                                .filter(logRequest())
                                 .filter(CircuitBreakerFilterFunctions.circuitBreaker("rotoreaderServiceCircuitBreaker",
+                                                URI.create("forward:/fallbackRoute")))
+                                .build();
+        }
+
+        @Bean
+        public RouterFunction<ServerResponse> gosportsagentServiceRoute() {
+                log.info("Configuring gosportsagent route with URL: {}", gosportsagentServiceUrl);
+                return GatewayRouterFunctions.route("gosportsagent_service_route")
+                                .route(RequestPredicates.path("/api/gosportsagent/**"),
+                                                HandlerFunctions.http(gosportsagentServiceUrl))
+                                .before(BeforeFilterFunctions.stripPrefix(2))
+                                .filter(logRequest())
+                                .filter(CircuitBreakerFilterFunctions.circuitBreaker(
+                                                "gosportsagentServiceCircuitBreaker",
                                                 URI.create("forward:/fallbackRoute")))
                                 .build();
         }

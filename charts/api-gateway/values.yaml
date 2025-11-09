@@ -2,8 +2,28 @@ image:
   repository: maxo5499/sportsstack-api-gateway
   tag: latest
 
-replicas: 2
+replicas: 1
 
 env:
   oddstrackerServiceUrl: http://oddstracker:8080
   rotoreaderServiceUrl: http://rotoreader:8081
+  gosportsagentServiceUrl: http://go-sportsagent:8082
+
+strategy:
+  type: Recreate
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+
+readinessProbe:
+  initialDelaySeconds: 60
+  periodSeconds: 10
+
+livenessProbe:
+  initialDelaySeconds: 300
+  periodSeconds: 30

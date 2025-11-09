@@ -36,3 +36,13 @@ spec:
                 name: rotoreader
                 port:
                   number: 8081
+    - host: gosportsagent.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gosportsagent
+                port:
+                  number: 8082

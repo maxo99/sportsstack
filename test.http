@@ -1,31 +1,49 @@
 
 ###
 #
-#
+# {{ $dotenv _CLIENT_SECRET }}
 #
 @GATEWAY_URL = http://localhost:8088
-# @GATEWAY_URL = http://172.19.0.4:8088
+@GOSPORTSAGENT_URL = {{GATEWAY_URL}}/api/gosportsagent
 @ODDSTRACKER_URL = {{GATEWAY_URL}}/api/oddstracker
 @ROTOREADER_URL = {{GATEWAY_URL}}/api/rotoreader
+@PROMETHEUS_URL = http://localhost:30090
+#
 #
 ###
-GET {{GATEWAY_URL}}/aggregate/api-docs
+################################ Gateway ################################
+# Gateway API Docs
+GET {{GATEWAY_URL}}/api-docs
 ###
-
+# Aggregate API Docs
+GET {{GATEWAY_URL}}/swagger-ui.html
+###
+#
+#
+################################ HealthChecks ################################ 
 # Health Check API - oddstracker
 GET {{ODDSTRACKER_URL}}
 ###
-
-
-
+# Health Check API - gosportsagent
+GET {{GOSPORTSAGENT_URL}}/healthz
+###
 # Health Check API - rotoreader
 GET {{ROTOREADER_URL}}
 ###
 #
 #
 #
+################################ Go SportsAgent ################################
 #
-### oddstracker APIs
+# Get Declared tools
+GET {{GOSPORTSAGENT_URL}}/tools
+###
+# Prometheus metrics
+GET {{GOSPORTSAGENT_URL}}/metrics
+###
+#
+#
+################################ oddstracker ################################
 #
 #
 #
@@ -47,7 +65,7 @@ GET {{ODDSTRACKER_URL}}/openapi.json
 #
 #
 #
-### rotoreader APIs
+################################ rotoreader ################################ 
 #
 #
 #
@@ -58,14 +76,14 @@ PUT {{ROTOREADER_URL}}/collect
 ###
 #
 # Prometheus
-GET http://172.19.0.4:30090/api/v1/query?query=up
+GET {{PROMETHEUS_URL}}/api/v1/query?query=up
 ###
-# GET http://172.19.0.4:30090/api/v1/query?query={namespace="sportsstack"}
-GET http://172.19.0.4:30090/api/v1/query?query=%7Bnamespace%3D%22sportsstack%22%7D
+# GET {{PROMETHEUS_URL}}/api/v1/query?query={namespace="sportsstack"}
+GET {{PROMETHEUS_URL}}/api/v1/query?query=%7Bnamespace%3D%22sportsstack%22%7D
 
 ###
-GET http://172.19.0.4:30090/api/v1/query?query=http_requests_total
+GET {{PROMETHEUS_URL}}/api/v1/query?query=http_requests_total
 #
 ###
-GET http://172.19.0.4:30090/api/v1/query?query=go_goroutines
+GET {{PROMETHEUS_URL}}/api/v1/query?query=go_goroutines
 ###

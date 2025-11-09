@@ -5,6 +5,8 @@ metadata:
   namespace: sportsstack
 spec:
   replicas: {{ .Values.replicas }}
+  strategy: 
+    type: {{ .Values.strategy.type}}
   selector:
     matchLabels:
       app: api-gateway
@@ -22,24 +24,21 @@ spec:
               value: {{ .Values.env.oddstrackerServiceUrl | quote }}
             - name: ROTOREADER_SERVICE_URL
               value: {{ .Values.env.rotoreaderServiceUrl | quote }}
+            - name: GOSPORTSAGENT_SERVICE_URL
+              value: {{ .Values.env.gosportsagentServiceUrl | quote }}
           ports:
             - containerPort: 8088
           resources:
-            requests:
-              cpu: 100m
-              memory: 256Mi
-            limits:
-              cpu: 500m
-              memory: 512Mi
+            {{- toYaml .Values.resources | nindent 12 }}
           readinessProbe:
             httpGet:
               path: /actuator/health
               port: 8088
-            initialDelaySeconds: 60
-            periodSeconds: 10
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
           livenessProbe:
             httpGet:
               path: /actuator/health
               port: 8088
-            initialDelaySeconds: 120
-            periodSeconds: 30
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}

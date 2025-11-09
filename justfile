@@ -7,6 +7,39 @@ oddstracker_image := "maxo5499/sportsstack-oddstracker:latest"
 api_gateway_image := "maxo5499/sportsstack-api-gateway:latest"
 go_sportsagent_image := "maxo5499/sportsstack-go-sportsagent:latest"
 
+# Show available recipes
+default:
+	@just --list
+
+# Common workflows
+help:
+	@echo "SportsStack - Common Workflows"
+	@echo "==============================="
+	@echo ""
+	@echo "Quick Deploy (build + load + restart):"
+	@echo "  just deploy-rotoreader      - Build, load, and restart rotoreader"
+	@echo "  just deploy-oddstracker     - Build, load, and restart oddstracker"
+	@echo "  just deploy-api-gateway     - Build, load, and restart api-gateway"
+	@echo "  just deploy-go-sportsagent  - Build, load, and restart go-sportsagent"
+	@echo "  just deploy-all             - Deploy all services"
+	@echo ""
+	@echo "Status & Monitoring:"
+	@echo "  just status                 - Show pod status and resource usage"
+	@echo "  just status-all             - Show all resources in namespace"
+	@echo "  just logs-<service>         - Tail logs for a service"
+	@echo "  just describe-<service>     - Describe pods for a service"
+	@echo ""
+	@echo "Port Forwarding:"
+	@echo "  just pf-rotoreader          - Forward to rotoreader:8081"
+	@echo "  just pf-oddstracker         - Forward to oddstracker:8080"
+	@echo "  just pf-api-gateway         - Forward to api-gateway:8088"
+	@echo "  just pf-go-sportsagent      - Forward to go-sportsagent:8082"
+	@echo ""
+	@echo "Database:"
+	@echo "  just db-shell               - psql shell to shared database"
+	@echo ""
+	@echo "For full list: just --list"
+
 build-rotoreader:
 	./rotoreader/build.sh
 
@@ -30,6 +63,54 @@ kind-load-api-gateway:
 
 kind-load-go-sportsagent:
 	kind load docker-image {{go_sportsagent_image}} --name {{kind_cluster}}
+
+# Combined workflows: build + load + restart
+deploy-rotoreader:
+	@echo "Building rotoreader..."
+	@just build-rotoreader
+	@echo "Loading into Kind cluster..."
+	@just kind-load-rotoreader
+	@echo "Restarting deployment..."
+	@kubectl -n {{ns}} delete pod -l app=rotoreader
+	@kubectl -n {{ns}} wait --for=condition=ready pod -l app=rotoreader --timeout=180s
+	@echo "✅ rotoreader deployed successfully!"
+
+deploy-oddstracker:
+	@echo "Building oddstracker..."
+	@just build-oddstracker
+	@echo "Loading into Kind cluster..."
+	@just kind-load-oddstracker
+	@echo "Restarting deployment..."
+	@kubectl -n {{ns}} delete pod -l app=oddstracker
+	@kubectl -n {{ns}} wait --for=condition=ready pod -l app=oddstracker --timeout=180s
+	@echo "✅ oddstracker deployed successfully!"
+
+deploy-api-gateway:
+	@echo "Building api-gateway..."
+	@just build-api-gateway
+	@echo "Loading into Kind cluster..."
+	@just kind-load-api-gateway
+	@echo "Restarting deployment..."
+	@kubectl -n {{ns}} delete pod -l app=api-gateway
+	@kubectl -n {{ns}} wait --for=condition=ready pod -l app=api-gateway --timeout=300s
+	@echo "✅ api-gateway deployed successfully!"
+
+deploy-go-sportsagent:
+	@echo "Building go-sportsagent..."
+	@just build-go-sportsagent
+	@echo "Loading into Kind cluster..."
+	@just kind-load-go-sportsagent
+	@echo "Restarting deployment..."
+	@kubectl -n {{ns}} delete pod -l app=go-sportsagent
+	@kubectl -n {{ns}} wait --for=condition=ready pod -l app=go-sportsagent --timeout=180s
+	@echo "✅ go-sportsagent deployed successfully!"
+
+# Deploy all services
+deploy-all:
+	@just deploy-rotoreader
+	@just deploy-oddstracker
+	@just deploy-api-gateway
+	@just deploy-go-sportsagent
 
 k8s-create-secret:
 	kubectl -n {{ns}} delete secret postgres-secret --ignore-not-found
@@ -82,16 +163,19 @@ restart-go-sportsagent:
 	kubectl -n {{ns}} rollout status deploy/go-sportsagent
 
 logs-rotoreader:
-	kubectl -n {{ns}} logs deploy/rotoreader -c api --tail=200 -f
+	kubectl -n {{ns}} logs -l app=rotoreader -c api --tail=200 -f
 
 logs-oddstracker:
-	kubectl -n {{ns}} logs deploy/oddstracker -c api --tail=200 -f
+	kubectl -n {{ns}} logs -l app=oddstracker -c api --tail=200 -f
 
 logs-api-gateway:
-	kubectl -n {{ns}} logs deploy/api-gateway --tail=200 -f
+	kubectl -n {{ns}} logs -l app=api-gateway --tail=200 -f
 
 logs-go-sportsagent:
-	kubectl -n {{ns}} logs deploy/go-sportsagent -c api --tail=200 -f
+	kubectl -n {{ns}} logs -l app=go-sportsagent --tail=200 -f
+
+logs-postgres:
+	kubectl -n {{ns}} logs -l app=postgres --tail=200 -f
 
 logs-rotoreader-init:
 	for pod in $(kubectl -n {{ns}} get pods -l app=rotoreader -o name); do kubectl -n {{ns}} logs "$pod" -c wait-for-postgres --tail=200; done
@@ -105,8 +189,14 @@ describe-rotoreader:
 describe-oddstracker:
 	kubectl -n {{ns}} describe pods -l app=oddstracker
 
+describe-api-gateway:
+	kubectl -n {{ns}} describe pods -l app=api-gateway
+
 describe-go-sportsagent:
 	kubectl -n {{ns}} describe pods -l app=go-sportsagent
+
+describe-postgres:
+	kubectl -n {{ns}} describe pods -l app=postgres
 
 events-rotoreader:
 	kubectl -n {{ns}} get events --sort-by=.lastTimestamp
@@ -254,3 +344,47 @@ k8s-get-controlplane-details:
 	kubectl cluster-info
 	kubectl get nodes -o wide
 	kubectl get namespaces
+
+get-events:
+	kubectl -n {{ns}} get events --sort-by=.lastTimestamp
+
+# Status and utility commands
+status:
+	@echo "=== SportsStack Services Status ==="
+	@kubectl -n {{ns}} get pods -l 'app in (rotoreader,oddstracker,api-gateway,go-sportsagent,postgres)' -o wide
+	@echo ""
+	@echo "=== Resource Usage ==="
+	@kubectl top pod -n {{ns}} -l 'app in (rotoreader,oddstracker,api-gateway,go-sportsagent,postgres)' 2>/dev/null || echo "Metrics not available (metrics-server may not be running)"
+
+status-all:
+	@echo "=== All Pods in namespace ==="
+	@kubectl -n {{ns}} get pods -o wide
+	@echo ""
+	@echo "=== Services ==="
+	@kubectl -n {{ns}} get svc
+	@echo ""
+	@echo "=== Ingress ==="
+	@kubectl -n {{ns}} get ingress
+
+logs-tail service:
+	kubectl -n {{ns}} logs -l app={{service}} --tail=100 -f
+
+logs-all service:
+	kubectl -n {{ns}} logs -l app={{service}} --all-containers=true --tail=500
+
+# Quick restart without rebuild (useful when only Helm values change)
+restart service:
+	kubectl -n {{ns}} delete pod -l app={{service}}
+	kubectl -n {{ns}} wait --for=condition=ready pod -l app={{service}} --timeout=180s
+
+# Check if image is loaded in Kind
+check-image image:
+	@echo "Checking if {{image}} is in Kind cluster..."
+	@docker exec -it {{kind_cluster}}-control-plane crictl images | grep {{image}} || echo "❌ Image not found in Kind cluster"
+
+check-all-images:
+	@echo "=== Images in Kind cluster ==="
+	@just check-image rotoreader
+	@just check-image oddstracker
+	@just check-image api-gateway
+	@just check-image go-sportsagent
