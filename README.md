@@ -1,9 +1,29 @@
 # SportsStack Platform
 
-This repo contains the SportsStack services plus container orchestration assets. Two deployment paths exist:
+This repo contains the SportsStack services plus container orchestration assets.
 
-- `docker-compose.yaml` retains the previous local stack and is still usable for quick spins of the classic environment.
-- `k8s/` provides the Kubernetes manifests for the shared `sportsstack` namespace (Postgres, rotoreader, oddstracker, API gateway, ingress, autoscaling, and cron jobs).
+```mermaid
+graph LR
+    EXT[External APIs] --> ING[Ingress]
+    ING --> APIGW[API Gateway]
+    
+    APIGW --> ODD[oddstracker<br/>Python/FastAPI]
+    APIGW --> ROTO[rotoreader<br/>Python/FastAPI]
+    APIGW --> AGENT[go-sportsagent<br/>Go]
+    
+    ODD --> ODDDB[(TimescaleDB<br/>PG15)]
+    ROTO --> ROTODB[(pgvector<br/>PG18)]
+    
+    OBS[Observability<br/>Grafana/Prometheus/Loki] -.-> ODD
+    OBS -.-> ROTO
+    OBS -.-> ODDDB
+    OBS -.-> ROTODB
+    
+    style ODDDB fill:#f9f
+    style ROTODB fill:#9ff
+    style APIGW fill:#ff9
+```
+
 
 ## Prerequisites
 
