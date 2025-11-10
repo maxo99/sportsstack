@@ -26,6 +26,32 @@ spec:
           value: http://rotoreader:8081
         - name: GOSPORTSAGENT_SERVICE_URL
           value: http://go-sportsagent:8082
+        - name: OTEL_SERVICE_NAME
+          value: api-gateway
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://observability-tempo:4317
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: grpc
+        - name: OTEL_EXPORTER_OTLP_INSECURE
+          value: "true"
+        - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+          value: http://observability-tempo:4317
+        - name: OTEL_EXPORTER_OTLP_TRACES_PROTOCOL
+          value: grpc
+        - name: OTEL_METRICS_EXPORTER
+          value: none
+        - name: OTEL_LOGS_EXPORTER
+          value: none
+        - name: OTEL_PROPAGATORS
+          value: tracecontext,baggage
+        - name: OTEL_TRACES_SAMPLER
+          value: parentbased_always_on
+        - name: OTEL_TRACES_EXPORTER
+          value: otlp
+        - name: OTEL_LOG_LEVEL
+          value: debug
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: service.namespace=sportsstack
         ports:
         - containerPort: 8088
         resources:
