@@ -21,11 +21,11 @@ GET {{GATEWAY_URL}}/swagger-ui.html
 #
 #
 ################################ HealthChecks ################################ 
-# Health Check API - oddstracker
-GET {{ODDSTRACKER_URL}}
-###
 # Health Check API - gosportsagent
 GET {{GOSPORTSAGENT_URL}}/healthz
+###
+# Health Check API - oddstracker
+GET {{ODDSTRACKER_URL}}
 ###
 # Health Check API - rotoreader
 GET {{ROTOREADER_URL}}
@@ -38,6 +38,18 @@ GET {{ROTOREADER_URL}}
 # Get Declared tools
 GET {{GOSPORTSAGENT_URL}}/tools
 ###
+#
+# Query - tools
+# GET {{GOSPORTSAGENT_URL}}/query?
+###
+# Query - tools
+POST {{GOSPORTSAGENT_URL}}/query  HTTP/1.1
+content-type: application/json
+
+{
+    "query": "List what tools do you have defined?"
+}
+###
 # Prometheus metrics
 GET {{GOSPORTSAGENT_URL}}/metrics
 ###
@@ -46,8 +58,10 @@ GET {{GOSPORTSAGENT_URL}}/metrics
 ################################ oddstracker ################################
 #
 #
-#
-POST {{ODDSTRACKER_URL}}/collect?provider_key=theoddsapi
+# Get docs
+GET {{ODDSTRACKER_URL}}/openapi.json
+###
+POST {{ODDSTRACKER_URL}}/collect?provider_key=kambi
 #
 ###
 GET {{ODDSTRACKER_URL}}/event
@@ -58,8 +72,8 @@ GET {{ODDSTRACKER_URL}}/metrics
 # Get docs
 GET {{ODDSTRACKER_URL}}/docs
 ###
-# Get docs
-GET {{ODDSTRACKER_URL}}/openapi.json
+# Get changes
+GET {{ODDSTRACKER_URL}}/changes
 ###
 #
 #
@@ -73,6 +87,9 @@ GET {{ODDSTRACKER_URL}}/openapi.json
 GET {{ROTOREADER_URL}}/feed?size=1
 ###
 PUT {{ROTOREADER_URL}}/collect
+###
+# Get docs
+GET {{ROTOREADER_URL}}/openapi.json
 ###
 #
 # Prometheus
