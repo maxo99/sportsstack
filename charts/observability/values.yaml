@@ -29,7 +29,7 @@ grafana:
         type: prometheus
         access: proxy
         url: http://observability-prometheus-server
-        isDefault: true
+        isDefault: false
       - name: Loki
         type: loki
         access: proxy
@@ -48,9 +48,11 @@ grafana:
         access: proxy
         url: oddstracker-postgres.sportsstack.svc.cluster.local
         database: oddstracker
+        jsonData:
+          sslmode: disable
         user: postgres
         secureJsonData:
-          password: postgrespassword
+          password: postgres
         isDefault: false
 loki-stack:
   enabled: true

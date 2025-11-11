@@ -81,7 +81,7 @@ GET {{ODDSTRACKER_URL}}/metrics
 GET {{ODDSTRACKER_URL}}/docs
 ###
 # Get changes
-GET {{ODDSTRACKER_URL}}/changes
+GET {{ODDSTRACKER_URL}}/linemoves
 ###
 #
 #
