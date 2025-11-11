@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": null,
+  "id": 2,
   "links": [],
   "panels": [
     {
@@ -95,6 +95,607 @@
     },
     {
       "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "oddstracker-timescaledb"
+      },
+      "description": "See how data is distributed across time chunks",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 10,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "frameIndex": 1,
+        "showHeader": true
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "oddstracker-timescaledb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n    hypertable_name,\n    chunk_name,\n    primary_dimension,\n    range_start,\n    range_end\n    --\n    -- total_bytes / (1024*1024) AS chunk_size_mb,\n    -- compressed_total_bytes / (1024*1024) AS compressed_mb\nFROM timescaledb_information.chunks\nWHERE hypertable_name = 'eventoffer'\nORDER BY range_start DESC\nLIMIT 20;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "CHUNK INFO FOR RETENTION POLICIES",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "oddstracker-timescaledb"
+      },
+      "description": "Opening lines vs current lines",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byType",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "movement_percentage"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "left"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "oddstracker-timescaledb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH first_odds AS (\n    SELECT DISTINCT ON (bookmaker, offer_type, choice)\n        bookmaker,\n        offer_type,\n        choice,\n        price AS opening_price,\n        timestamp AS opening_time\n    FROM eventoffer\n    WHERE event_id = '$event_id'\n    ORDER BY bookmaker, offer_type, choice, timestamp ASC\n),\nlast_odds AS (\n    SELECT DISTINCT ON (bookmaker, offer_type, choice)\n        bookmaker,\n        offer_type,\n        choice,\n        price AS current_price,\n        timestamp AS current_time\n    FROM eventoffer\n    WHERE event_id = '$event_id'\n    ORDER BY bookmaker, offer_type, choice, timestamp DESC\n)\nSELECT \n    f.bookmaker,\n    f.offer_type,\n    f.choice,\n    f.opening_price,\n    l.current_price,\n    l.current_price - f.opening_price AS price_movement,\n    (l.current_price - f.opening_price) / f.opening_price * 100 AS movement_percentage,\n    f.opening_time,\n    l.current_time\nFROM first_odds f\nJOIN last_odds l ON f.bookmaker = l.bookmaker \n                 AND f.offer_type = l.offer_type \n                 AND f.choice = l.choice\nORDER BY f.offer_type, ABS(l.current_price - f.opening_price) DESC;\n\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "FIRST vs LAST ODDS COMPARISON",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "oddstracker-timescaledb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "oddstracker-timescaledb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH ranked_offers AS (\n    SELECT \n        bookmaker,\n        choice,\n        price,\n        point,\n        timestamp,\n        ROW_NUMBER() OVER (PARTITION BY bookmaker, choice ORDER BY timestamp DESC) AS rn\n    FROM eventoffer\n    WHERE event_id = '$event_id'\n      AND offer_type = '$offer_type'\n)\nSELECT \n    bookmaker,\n    choice,\n    price,\n    point,\n    timestamp AS last_updated\nFROM ranked_offers\nWHERE rn = 1\nORDER BY choice, price DESC;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "BOOKMAKER COMPARISON TABLE",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "oddstracker-timescaledb"
+      },
+      "description": "How often each bookmaker updates their odds",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 9,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "oddstracker-timescaledb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n    time_bucket('$interval', timestamp) AS time,\n    bookmaker,\n    COUNT(*) AS update_count,\n    COUNT(DISTINCT event_id) AS events_updated\nFROM eventoffer\nWHERE $__timeFilter(timestamp)\nGROUP BY time, bookmaker\nORDER BY time DESC, update_count DESC;\n\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "BOOKMAKER UPDATE FREQUENCY",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "oddstracker-timescaledb"
+      },
+      "description": "List all events with their market counts",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 8,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "11.1.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "oddstracker-timescaledb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \n    se.id,\n    se.home_team,\n    se.away_team,\n    se.sport_title,\n    se.commence_time,\n    COUNT(DISTINCT eo.offer_type) AS market_types,\n    COUNT(DISTINCT eo.bookmaker) AS bookmaker_count,\n    MAX(eo.timestamp) AS last_odds_update\nFROM sportevent se\nLEFT JOIN eventoffer eo ON se.id = eo.event_id\nGROUP BY se.id, se.home_team, se.away_team, se.sport_title, se.commence_time\nORDER BY se.commence_time DESC;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "EVENT SUMMARY WITH ACTIVE MARKETS",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "oddstracker-timescaledb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "right",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "oddstracker-timescaledb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH first_odds AS (\n    SELECT DISTINCT ON (bookmaker, offer_type, choice)\n        bookmaker,\n        offer_type,\n        choice,\n        price AS opening_price,\n        timestamp AS opening_time\n    FROM eventoffer\n    WHERE event_id = '$event_id'\n    ORDER BY bookmaker, offer_type, choice, timestamp ASC\n),\nlast_odds AS (\n    SELECT DISTINCT ON (bookmaker, offer_type, choice)\n        bookmaker,\n        offer_type,\n        choice,\n        price AS current_price,\n        timestamp AS current_time\n    FROM eventoffer\n    WHERE event_id = '$event_id'\n    ORDER BY bookmaker, offer_type, choice, timestamp DESC\n)\nSELECT \n    f.bookmaker,\n    f.offer_type,\n    f.choice,\n    f.opening_price,\n    l.current_price,\n    l.current_price - f.opening_price AS price_movement,\n    (l.current_price - f.opening_price) / f.opening_price * 100 AS movement_percentage,\n    f.opening_time,\n    l.current_time\nFROM first_odds f\nJOIN last_odds l ON f.bookmaker = l.bookmaker \n                 AND f.offer_type = l.offer_type \n                 AND f.choice = l.choice\nORDER BY f.offer_type, ABS(l.current_price - f.opening_price) DESC;\n",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Panel Title",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
         "type": "postgres",
         "uid": "oddstracker-timescaledb"
       },
@@ -152,7 +753,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 32
       },
       "id": 2,
       "options": {
@@ -246,7 +847,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 17
+        "y": 41
       },
       "id": 3,
       "options": {
@@ -296,45 +897,13 @@
     },
     {
       "datasource": {
-        "type": "postgres",
+        "type": "grafana-postgresql-datasource",
         "uid": "oddstracker-timescaledb"
       },
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -357,31 +926,38 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 17
+        "y": 41
       },
-      "id": 5,
+      "id": 7,
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "hidden",
-          "placement": "right",
-          "showLegend": false
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
       },
+      "pluginVersion": "11.1.0",
       "targets": [
         {
           "datasource": {
-            "type": "postgres",
+            "type": "grafana-postgresql-datasource",
             "uid": "oddstracker-timescaledb"
           },
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH first_odds AS (\n    SELECT DISTINCT ON (bookmaker, offer_type, choice)\n        bookmaker,\n        offer_type,\n        choice,\n        price AS opening_price,\n        timestamp AS opening_time\n    FROM eventoffer\n    WHERE event_id = '$event_id'\n    ORDER BY bookmaker, offer_type, choice, timestamp ASC\n),\nlast_odds AS (\n    SELECT DISTINCT ON (bookmaker, offer_type, choice)\n        bookmaker,\n        offer_type,\n        choice,\n        price AS current_price,\n        timestamp AS current_time\n    FROM eventoffer\n    WHERE event_id = '$event_id'\n    ORDER BY bookmaker, offer_type, choice, timestamp DESC\n)\nSELECT \n    f.bookmaker,\n    f.offer_type,\n    f.choice,\n    f.opening_price,\n    l.current_price,\n    l.current_price - f.opening_price AS price_movement,\n    (l.current_price - f.opening_price) / f.opening_price * 100 AS movement_percentage,\n    f.opening_time,\n    l.current_time\nFROM first_odds f\nJOIN last_odds l ON f.bookmaker = l.bookmaker \n                 AND f.offer_type = l.offer_type \n                 AND f.choice = l.choice\nORDER BY f.offer_type, ABS(l.current_price - f.opening_price) DESC;\n",
+          "rawSql": "SELECT \n    bookmaker,\n    choice,\n    COUNT(DISTINCT timestamp) AS change_count,\n    MAX(price) - MIN(price) AS price_range,\n    STDDEV(price) AS price_stddev,\n    MAX(timestamp) AS last_change\nFROM eventoffer\nWHERE event_id = '$event_id'\n  AND offer_type = '$offer_type'\n  AND $__timeFilter(timestamp)\nGROUP BY bookmaker, choice\nORDER BY change_count DESC;\n",
           "refId": "A",
           "sql": {
             "columns": [
@@ -402,8 +978,8 @@
           }
         }
       ],
-      "title": "Panel Title",
-      "type": "timeseries"
+      "title": "ODDS VOLATILITY INDEX",
+      "type": "bargauge"
     },
     {
       "collapsed": false,
@@ -411,7 +987,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 49
       },
       "id": 4,
       "panels": [],
@@ -430,13 +1006,13 @@
       {
         "current": {
           "selected": true,
-          "text": "Las Vegas Raiders vs Dallas Cowboys",
-          "value": "80d04ba917883a6438580ebae9fb0f22"
+          "text": "CLE vs BAL",
+          "value": "2025_11_BAL_CLE"
         },
-            "datasource": {
-              "type": "postgres",
-              "uid": "oddstracker-timescaledb"
-            },
+        "datasource": {
+          "type": "postgres",
+          "uid": "oddstracker-timescaledb"
+        },
         "definition": "SELECT id AS __value, home_team || ' vs ' || away_team AS __text FROM sportevent ORDER BY commence_time DESC LIMIT 50",
         "hide": 0,
         "includeAll": false,
@@ -453,7 +1029,7 @@
       },
       {
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "h2h",
           "value": "h2h"
         },
@@ -486,14 +1062,18 @@
       },
       {
         "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
         },
-            "datasource": {
-              "type": "postgres",
-              "uid": "oddstracker-timescaledb"
-            },
+        "datasource": {
+          "type": "postgres",
+          "uid": "oddstracker-timescaledb"
+        },
         "definition": "SELECT DISTINCT bookmaker FROM eventoffer ORDER BY bookmaker",
         "hide": 0,
         "includeAll": true,
@@ -510,9 +1090,9 @@
       },
       {
         "current": {
-          "selected": false,
-          "text": "1 hour",
-          "value": "1 hour"
+          "selected": true,
+          "text": "1 day",
+          "value": "1 day"
         },
         "hide": 0,
         "includeAll": false,
@@ -526,7 +1106,7 @@
             "value": "15 minutes"
           },
           {
-            "selected": true,
+            "selected": false,
             "text": "1 hour",
             "value": "1 hour"
           },
@@ -536,7 +1116,7 @@
             "value": "6 hours"
           },
           {
-            "selected": false,
+            "selected": true,
             "text": "1 day",
             "value": "1 day"
           }
@@ -550,12 +1130,12 @@
   },
   "time": {
     "from": "2025-11-10T22:54:14.262Z",
-    "to": "2025-11-11T13:39:06.636Z"
+    "to": "2025-11-11T05:31:01.057Z"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Odds Tracker - Overview",
   "uid": "odds-tracker-overview",
-  "version": 2,
+  "version": 1,
   "weekStart": ""
 }

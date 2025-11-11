@@ -69,7 +69,10 @@ GET {{GOSPORTSAGENT_URL}}/metrics
 # Get docs
 GET {{ODDSTRACKER_URL}}/openapi.json
 ###
-POST {{ODDSTRACKER_URL}}/collect?provider_key=theoddsapi
+PUT {{ODDSTRACKER_URL}}/collect?provider_key=kambi
+#
+###
+PUT {{ODDSTRACKER_URL}}/collect?provider_key=theoddsapi
 #
 ###
 GET {{ODDSTRACKER_URL}}/event
