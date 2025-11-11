@@ -41,9 +41,8 @@ grafana:
         url: http://observability-tempo:3100
         jsonData:
           httpMethod: GET
-          serviceMap: true
-        isDefault: false
       - name: oddstracker-timescaledb
+        uid: oddstracker-timescaledb
         type: postgres
         access: proxy
         url: oddstracker-postgres.sportsstack.svc.cluster.local
@@ -54,6 +53,20 @@ grafana:
         secureJsonData:
           password: postgres
         isDefault: false
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: default
+        orgId: 1
+        folder: SportsStack
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+  dashboardsConfigMaps:
+    default: observability-grafana-dashboards
 loki-stack:
   enabled: true
   loki:

@@ -1,0 +1,17 @@
+{{- $dashboard := .Files.Get "files/dashboards/oddstracker-overview.json" | default "" -}}
+{{- if $dashboard }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-grafana-dashboards" .Release.Name }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: grafana-dashboard
+  annotations:
+    grafana_dashboard: "1"
+data:
+  oddstracker-overview.json: |-
+{{ $dashboard | indent 4 }}
+{{- end }}
