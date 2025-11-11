@@ -19,4 +19,4 @@ spec:
               command:
                 - sh
                 - -c
-                - curl -f http://rotoreader.sportsstack.svc.cluster.local:8081/collect || exit 1
+                - curl -X PUT http://api-gateway:8088/api/rotoreader/collect || exit 1

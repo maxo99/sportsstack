@@ -14,4 +14,4 @@ hpa:
   targetCPUUtilizationPercentage: 75
 
 cronjob:
-  schedule: "0 * * * *"
+  schedule: "* */2 * * *"
