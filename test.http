@@ -50,6 +50,14 @@ content-type: application/json
     "query": "List what tools do you have defined?"
 }
 ###
+# Query - feeds
+POST {{GOSPORTSAGENT_URL}}/query  HTTP/1.1
+content-type: application/json
+
+{
+    "query": "Give breakdown of first feed data"
+}
+###
 # Prometheus metrics
 GET {{GOSPORTSAGENT_URL}}/metrics
 ###

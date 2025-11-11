@@ -60,6 +60,13 @@ graph LR
 - Port-forward for local access: `just pf-api-gateway`, `just pf-rotoreader`, `just pf-oddstracker`, `just pf-go-sportsagent`, `just pf-ingress`.
 - Database shell: `just db-shell`.
 
+## Observability Stack
+
+- Bootstrap Prometheus, Grafana, Loki, and Tempo: `just helm-observability-install`.
+- Uninstall stack and clean transient Loki storage: `just helm-observability-uninstall`.
+- Grafana now ships with Tempo as the tracing source for Grafana Explore (OTLP over gRPC at `observability-tempo:4317`).
+- After pulling chart changes, run `helm dependency update charts/observability` to sync the vendored dependencies.
+
 ## Structure Highlights
 
 - `api-gateway/`: Spring Cloud Gateway service, Dockerfile builds `maxo5499/sportsstack-api-gateway:latest`.

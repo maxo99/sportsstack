@@ -9,6 +9,22 @@ env:
   oddstrackerServiceUrl: http://api-gateway:8088/api/oddstracker
   rotoreaderServiceUrl: http://api-gateway:8088/api/rotoreader
 
+otel:
+  enabled: true
+  serviceName: go-sportsagent
+  exporterEndpoint: http://observability-tempo:4317
+  exporterProtocol: grpc
+  exporterInsecure: true
+  tracesEndpoint: http://observability-tempo:4317
+  tracesProtocol: grpc
+  resourceAttributes: service.namespace=sportsstack
+  tracesExporter: otlp
+  metricsExporter: none
+  logsExporter: none
+  propagators: tracecontext,baggage
+  tracesSampler: parentbased_always_on
+  logLevel: info
+
 hpa:
   minReplicas: 1
   maxReplicas: 3

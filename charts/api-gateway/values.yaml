@@ -9,6 +9,22 @@ env:
   rotoreaderServiceUrl: http://rotoreader:8081
   gosportsagentServiceUrl: http://go-sportsagent:8082
 
+otel:
+  enabled: true
+  serviceName: api-gateway
+  exporterEndpoint: http://observability-tempo:4317
+  exporterProtocol: grpc
+  exporterInsecure: true
+  tracesEndpoint: http://observability-tempo:4317
+  tracesProtocol: grpc
+  resourceAttributes: service.namespace=sportsstack
+  metricsExporter: none
+  logsExporter: none
+  propagators: tracecontext,baggage
+  tracesSampler: parentbased_always_on
+  tracesExporter: otlp
+  logLevel: info
+
 strategy:
   type: Recreate
 

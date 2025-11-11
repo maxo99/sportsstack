@@ -162,6 +162,40 @@ restart-go-sportsagent:
 	kubectl -n {{ns}} rollout restart deploy/go-sportsagent
 	kubectl -n {{ns}} rollout status deploy/go-sportsagent
 
+gateway-enable-tracing:
+	kubectl -n {{ns}} set env deploy/api-gateway \
+		OTEL_SERVICE_NAME=api-gateway \
+		OTEL_EXPORTER_OTLP_ENDPOINT=http://observability-tempo:4317 \
+		OTEL_EXPORTER_OTLP_PROTOCOL=grpc \
+		OTEL_EXPORTER_OTLP_INSECURE=true \
+		OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://observability-tempo:4317 \
+		OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc \
+		OTEL_METRICS_EXPORTER=none \
+		OTEL_LOGS_EXPORTER=none \
+		OTEL_PROPAGATORS=tracecontext,baggage \
+		OTEL_TRACES_SAMPLER=parentbased_always_on \
+		OTEL_TRACES_EXPORTER=otlp \
+		OTEL_LOG_LEVEL=debug \
+		OTEL_RESOURCE_ATTRIBUTES=service.namespace=sportsstack --overwrite
+	kubectl -n {{ns}} rollout status deploy/api-gateway
+
+gateway-disable-tracing:
+	kubectl -n {{ns}} set env deploy/api-gateway \
+		OTEL_SERVICE_NAME- \
+		OTEL_EXPORTER_OTLP_ENDPOINT- \
+		OTEL_EXPORTER_OTLP_PROTOCOL- \
+		OTEL_EXPORTER_OTLP_INSECURE- \
+		OTEL_EXPORTER_OTLP_TRACES_ENDPOINT- \
+		OTEL_EXPORTER_OTLP_TRACES_PROTOCOL- \
+		OTEL_METRICS_EXPORTER- \
+		OTEL_LOGS_EXPORTER- \
+		OTEL_PROPAGATORS- \
+		OTEL_TRACES_SAMPLER- \
+		OTEL_TRACES_EXPORTER- \
+		OTEL_LOG_LEVEL- \
+		OTEL_RESOURCE_ATTRIBUTES- --overwrite || true
+	kubectl -n {{ns}} rollout status deploy/api-gateway
+
 logs-rotoreader:
 	kubectl -n {{ns}} logs -l app=rotoreader -c api --tail=200 -f
 

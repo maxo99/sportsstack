@@ -26,6 +26,36 @@ spec:
               value: {{ .Values.env.rotoreaderServiceUrl | quote }}
             - name: GOSPORTSAGENT_SERVICE_URL
               value: {{ .Values.env.gosportsagentServiceUrl | quote }}
+{{- if .Values.otel.enabled }}
+            - name: OTEL_SERVICE_NAME
+              value: {{ .Values.otel.serviceName | quote }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.otel.exporterEndpoint | quote }}
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: {{ .Values.otel.exporterProtocol | quote }}
+            - name: OTEL_EXPORTER_OTLP_INSECURE
+              value: {{ ternary "true" "false" .Values.otel.exporterInsecure | quote }}
+            - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+              value: {{ .Values.otel.tracesEndpoint | quote }}
+            - name: OTEL_EXPORTER_OTLP_TRACES_PROTOCOL
+              value: {{ .Values.otel.tracesProtocol | quote }}
+            - name: OTEL_METRICS_EXPORTER
+              value: {{ .Values.otel.metricsExporter | quote }}
+            - name: OTEL_LOGS_EXPORTER
+              value: {{ .Values.otel.logsExporter | quote }}
+            - name: OTEL_PROPAGATORS
+              value: {{ .Values.otel.propagators | quote }}
+            - name: OTEL_TRACES_SAMPLER
+              value: {{ .Values.otel.tracesSampler | quote }}
+            - name: OTEL_TRACES_EXPORTER
+              value: {{ .Values.otel.tracesExporter | quote }}
+            - name: OTEL_LOG_LEVEL
+              value: {{ .Values.otel.logLevel | quote }}
+{{- if .Values.otel.resourceAttributes }}
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: {{ .Values.otel.resourceAttributes | quote }}
+{{- end }}
+{{- end }}
           ports:
             - containerPort: 8088
           resources:

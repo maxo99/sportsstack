@@ -35,6 +35,14 @@ grafana:
         access: proxy
         url: http://observability-loki:3100
         isDefault: false
+      - name: Tempo
+        type: tempo
+        access: proxy
+        url: http://observability-tempo:3100
+        jsonData:
+          httpMethod: GET
+          serviceMap: true
+        isDefault: false
       - name: oddstracker-timescaledb
         type: postgres
         access: proxy
@@ -94,3 +102,23 @@ loki-stack:
     enabled: false
   prometheus:
     enabled: false
+
+tempo:
+  enabled: true
+  singleBinary:
+    enabled: true
+    persistence:
+      enabled: false
+  tempo:
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /var/tempo/traces
+        wal:
+          path: /var/tempo/wal
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
