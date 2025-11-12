@@ -2,4 +2,5 @@
 .obsidian
 **/*.env
 **/docker/data/**
-*.tgz
+tmp.md
+/**/observability/**/*.tgz

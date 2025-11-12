@@ -55,7 +55,7 @@ POST {{GOSPORTSAGENT_URL}}/query  HTTP/1.1
 content-type: application/json
 
 {
-    "query": "Give breakdown of first feed data"
+    "query": "Get the most recent feed data to identify a team of subject, then list the odds of event the team has coming up"
 }
 ###
 # Prometheus metrics
