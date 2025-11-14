@@ -6,7 +6,13 @@ A personalized stack of sports data services for tracking and analyzing favorite
 
 SportsStack integrates multiple microservices to collect, process, and serve sports data, including betting odds and news articles. The architecture is designed for scalability and resilience, leveraging Kubernetes for orchestration and Helm for deployment.
 
-## Usage
+### Goals
+
+- Bring real-time and historical stats into one place
+- Enable programmable analyses and alerts
+- Provide a clean API surface for exploration and automation
+
+### Usage
 
 - See [docs/usage.md](docs/usage.md) for detailed instructions on setting up the environment, building images, deploying services, and monitoring the system.
 
