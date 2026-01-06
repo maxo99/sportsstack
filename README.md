@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD033 -->
 # SportsStack Platform
 
 A personalized stack of sports data services for tracking and analyzing favorite teams.
@@ -64,10 +65,11 @@ graph LR
 - `oddstracker/`: FastAPI betting odds tracker, Dockerfile builds `maxo5499/sportsstack-oddstracker:latest`.
 - `go-sportsagent/`: Go service for sports agent functionality, Dockerfile builds `maxo5499/sportsstack-go-sportsagent:latest`.
 - `k8s/`: Namespace, ConfigMap, Postgres StatefulSet, rotoreader and oddstracker Deployments/HPAs/CronJobs, API gateway Deployment, ingress, and setup README.
-- `charts/`:
+- `charts/`: Shared infrastructure Helm charts
   - `sportsstack-db/`: Helm chart for DB ConfigMap and optional in‑cluster Postgres. Toggle external vs in‑cluster DB without changing app manifests.
-  - `oddstracker/`: Helm chart for oddstracker Deployment, Service, HPA, and CronJob.
-  - `rotoreader/`: Helm chart for rotoreader Deployment, Service, HPA, and CronJob.
-  - `api-gateway/`: Helm chart for api-gateway Deployment and Service.
-  - `go-sportsagent/`: Helm chart for go-sportsagent Deployment, Service, and HPA.
+  - `api-gateway/`: Helm chart for api-gateway Deployment and Service (monolith service).
+  - `observability/`: Helm chart for Prometheus, Grafana, Loki, Tempo monitoring stack.
+- `oddstracker/charts/oddstracker/`: Helm chart for oddstracker Deployment, Service, HPA, and CronJob.
+- `rotoreader/charts/rotoreader/`: Helm chart for rotoreader Deployment, Service, HPA, and CronJob.
+- `go-sportsagent/charts/go-sportsagent/`: Helm chart for go-sportsagent Deployment, Service, and HPA.
 - `.github/copilot-instructions.md`: Contributor guidance for this repository.

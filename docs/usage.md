@@ -26,6 +26,8 @@ Follow the sequence below to rebuild and redeploy as changes are made. The `just
 4. Install/upgrade charts:
    - Database: `just helm-db-install` (in-cluster) or `just helm-db-install-external host=mydb.example.com` (external)
    - Services: `just helm-oddstracker-install` / `just helm-rotoreader-install` / `just helm-api-gateway-install` / `just helm-go-sportsagent-install`
+
+   **Note**: Service charts are now located in their respective submodule repositories (oddstracker/charts/, rotoreader/charts/, go-sportsagent/charts/). The root charts/ directory now only contains shared infrastructure (sportsstack-db, observability) and the api-gateway chart.
 5. Apply remaining manifests (ingress): `kubectl apply -f k8s/ingress.yaml`.
 6. Monitor rollouts: `just k8s-rollouts`.
 

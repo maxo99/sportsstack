@@ -102,7 +102,15 @@ Important:
 
 ## Optional: manage services via Helm
 
-You can also manage oddstracker, rotoreader, and api-gateway using Helm charts in `charts/`. Each chart bundles Deployment and Service (plus HPA and CronJob for oddstracker/rotoreader) with values for image tags, replicas, and env vars.
+You can also manage oddstracker, rotoreader, go-sportsagent, and api-gateway using Helm charts. Service charts are now located in their respective submodule repositories:
+
+- **oddstracker**: `oddstracker/charts/oddstracker/`
+- **rotoreader**: `rotoreader/charts/rotoreader/`
+- **go-sportsagent**: `go-sportsagent/charts/go-sportsagent/`
+- **api-gateway**: `charts/api-gateway/` (remains in root as monolith)
+- **sportsstack-db**: `charts/sportsstack-db/` (remains in root as shared resource)
+
+Each chart bundles Deployment and Service (plus HPA and CronJob for oddstracker/rotoreader) with values for image tags, replicas, and env vars.
 
 ```bash
 # Oddstracker

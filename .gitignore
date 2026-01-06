@@ -4,3 +4,6 @@
 **/docker/data/**
 tmp.md
 /**/observability/**/*.tgz
+
+# bv (beads viewer) local config and caches
+.bv/

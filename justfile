@@ -146,6 +146,35 @@ k8s-rollouts:
 	kubectl -n {{ns}} rollout status deploy/oddstracker
 	kubectl -n {{ns}} rollout status deploy/api-gateway
 
+
+k8s-stop:
+	@echo "Scaling deployments down to 0 replicas..."
+	kubectl -n {{ns}} scale deploy rotoreader oddstracker api-gateway go-sportsagent --replicas=0
+	@echo "Scaling Postgres statefulset (if present) to 0..."
+	kubectl -n {{ns}} scale statefulset postgres --replicas=0 || true
+	@echo "Suspending collection cronjobs..."
+	kubectl -n {{ns}} patch cronjob rotoreader-collect-hourly -p '{"spec":{"suspend":true}}'
+	kubectl -n {{ns}} patch cronjob oddstracker-collect-hourly -p '{"spec":{"suspend":true}}'
+	@echo "Cleaning up active jobs and pods..."
+	kubectl -n {{ns}} delete job -l 'app in (rotoreader,oddstracker)' --ignore-not-found
+	kubectl -n {{ns}} wait --for=delete pod -l 'app in (rotoreader,oddstracker,api-gateway,go-sportsagent,postgres)' --timeout=120s || true
+	@echo "Namespace {{ns}} is now stopped/suspended."
+
+k8s-start:
+	@echo "Scaling Postgres statefulset (if present) up to 1 replica..."
+	kubectl -n {{ns}} scale statefulset postgres --replicas=1 || true
+	@echo "Scaling deployments back to 1 replica..."
+	kubectl -n {{ns}} scale deploy rotoreader oddstracker api-gateway go-sportsagent --replicas=1
+	@echo "Resuming collection cronjobs..."
+	kubectl -n {{ns}} patch cronjob rotoreader-collect-hourly -p '{"spec":{"suspend":false}}'
+	kubectl -n {{ns}} patch cronjob oddstracker-collect-hourly -p '{"spec":{"suspend":false}}'
+	@echo "Waiting for workloads to become ready..."
+	kubectl -n {{ns}} rollout status deploy/rotoreader --timeout=180s || true
+	kubectl -n {{ns}} rollout status deploy/oddstracker --timeout=180s || true
+	kubectl -n {{ns}} rollout status deploy/api-gateway --timeout=180s || true
+	kubectl -n {{ns}} rollout status deploy/go-sportsagent --timeout=180s || true
+	@echo "Namespace {{ns}} deployments restarted."
+
 restart-rotoreader:
 	kubectl -n {{ns}} rollout restart deploy/rotoreader
 	kubectl -n {{ns}} rollout status deploy/rotoreader
@@ -195,6 +224,8 @@ gateway-disable-tracing:
 		OTEL_LOG_LEVEL- \
 		OTEL_RESOURCE_ATTRIBUTES- --overwrite || true
 	kubectl -n {{ns}} rollout status deploy/api-gateway
+
+
 
 logs-rotoreader:
 	kubectl -n {{ns}} logs -l app=rotoreader -c api --tail=200 -f
@@ -326,10 +357,10 @@ k8s-api-gateway-preroll-for-helm:
 
 # Helm-based management for oddstracker
 helm-oddstracker-template:
-    helm template oddstracker charts/oddstracker -n {{ns}} -f charts/oddstracker/values.yaml
+    helm template oddstracker oddstracker/charts/oddstracker -n {{ns}} -f oddstracker/charts/oddstracker/values.yaml
 
 helm-oddstracker-install:
-    helm upgrade --install oddstracker charts/oddstracker -n {{ns}} --create-namespace -f charts/oddstracker/values.yaml
+    helm upgrade --install oddstracker oddstracker/charts/oddstracker -n {{ns}} --create-namespace -f oddstracker/charts/oddstracker/values.yaml
 
 helm-oddstracker-uninstall:
     helm uninstall oddstracker -n {{ns}}
@@ -343,10 +374,10 @@ k8s-oddstracker-preroll-for-helm:
 
 # Helm-based management for rotoreader
 helm-rotoreader-template:
-    helm template rotoreader charts/rotoreader -n {{ns}} -f charts/rotoreader/values.yaml
+    helm template rotoreader rotoreader/charts/rotoreader -n {{ns}} -f rotoreader/charts/rotoreader/values.yaml
 
 helm-rotoreader-install:
-    helm upgrade --install rotoreader charts/rotoreader -n {{ns}} --create-namespace -f charts/rotoreader/values.yaml
+    helm upgrade --install rotoreader rotoreader/charts/rotoreader -n {{ns}} --create-namespace -f rotoreader/charts/rotoreader/values.yaml
 
 helm-rotoreader-uninstall:
     helm uninstall rotoreader -n {{ns}}
@@ -360,10 +391,10 @@ k8s-rotoreader-preroll-for-helm:
 
 # Helm-based management for go-sportsagent
 helm-go-sportsagent-template:
-    helm template go-sportsagent charts/go-sportsagent -n {{ns}} -f charts/go-sportsagent/values.yaml
+    helm template go-sportsagent go-sportsagent/charts/go-sportsagent -n {{ns}} -f go-sportsagent/charts/go-sportsagent/values.yaml
 
 helm-go-sportsagent-install:
-    helm upgrade --install go-sportsagent charts/go-sportsagent -n {{ns}} --create-namespace -f charts/go-sportsagent/values.yaml
+    helm upgrade --install go-sportsagent go-sportsagent/charts/go-sportsagent -n {{ns}} --create-namespace -f go-sportsagent/charts/go-sportsagent/values.yaml
 
 helm-go-sportsagent-uninstall:
     helm uninstall go-sportsagent -n {{ns}}
