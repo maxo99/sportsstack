@@ -1,9 +1,0 @@
-[submodule "rotoreader"]
-	path = rotoreader
-	url = https://github.com/maxo99/rotoreader.git
-[submodule "oddstracker"]
-	path = oddstracker
-	url = https://github.com/maxo99/oddstracker.git
-[submodule "go-sportsagent"]
-	path = go-sportsagent
-	url = https://github.com/maxo99/go-sportsagent.git
